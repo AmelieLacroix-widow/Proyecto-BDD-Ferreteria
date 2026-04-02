@@ -1,0 +1,21 @@
+# Compilados
+*.class
+
+# Logs
+*.log
+
+# Maven
+target/
+
+# Gradle
+build/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Variables de entorno
+.env
