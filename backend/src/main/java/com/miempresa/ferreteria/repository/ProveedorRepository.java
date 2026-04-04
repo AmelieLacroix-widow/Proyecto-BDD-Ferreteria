@@ -8,7 +8,7 @@ import java.util.List;
 
 /**
  * Repositorio para la entidad Proveedor.
- * Tabla: proveedor — PK: idProveedor (Integer, camelCase)
+ * Tabla: PROVEEDOR — PK: idProveedor (Integer)
  */
 @Repository
 public interface ProveedorRepository extends JpaRepository<Proveedor, Integer> {
@@ -17,7 +17,7 @@ public interface ProveedorRepository extends JpaRepository<Proveedor, Integer> {
      * Búsqueda de proveedores por nombre parcial (sin distinción de mayúsculas).
      * Usado en el dropdown de selección de proveedor al crear/editar un producto.
      *
-     * SELECT * FROM proveedor WHERE nombre_proveedor LIKE %?%
+     * SELECT * FROM PROVEEDOR WHERE nombre_proveedor LIKE %?%
      */
     List<Proveedor> findByNombreProveedorContainingIgnoreCase(String nombre);
 }

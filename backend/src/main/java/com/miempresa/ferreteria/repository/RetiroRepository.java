@@ -12,51 +12,53 @@ import java.util.List;
 
 /**
  * Repositorio para la entidad Retiro.
- * Tabla: retiro — PK: id_retiro (Integer, snake_case según la entidad)
+ * Tabla: RETIRO — PK: idRetiro (Integer)
  *
  * Registra salidas de efectivo de caja que no son ventas
- * (gastos, retiros del dueño, etc.). Alimenta total_gastos_dia del Corte.
+ * (gastos, retiros del dueño, etc.). Alimenta totalGastosDia del Corte.
  */
 @Repository
 public interface RetiroRepository extends JpaRepository<Retiro, Integer> {
 
     /**
      * Devuelve todos los retiros de una fecha específica.
-     * Principal query de CorteService para sumar total_gastos_dia.
+     * Principal query de CorteService para sumar totalGastosDia.
      *
-     * SELECT * FROM retiro WHERE fecha_retiro = ?
+     * SELECT * FROM RETIRO WHERE fecha_retiro = ?
      */
-    List<Retiro> findByFecha_retiro(LocalDate fechaRetiro);
+    List<Retiro> findByFechaRetiro(LocalDate fechaRetiro);
 
     /**
      * Devuelve los retiros de un rango de fechas.
      * Usado en reportes de gastos por período.
      *
-     * SELECT * FROM retiro WHERE fecha_retiro BETWEEN ? AND ?
+     * SELECT * FROM RETIRO WHERE fecha_retiro BETWEEN ? AND ?
      */
-    List<Retiro> findByFecha_retiroBetween(LocalDate desde, LocalDate hasta);
+    List<Retiro> findByFechaRetiroBetween(LocalDate desde, LocalDate hasta);
 
     /**
      * Devuelve los retiros registrados por un usuario específico.
+     * Navega por la relación @ManyToOne: usuario.idUsuario
      *
-     * SELECT * FROM retiro WHERE id_usuario = ?
+     * SELECT * FROM RETIRO WHERE id_usuario = ?
      */
-    List<Retiro> findById_usuario(Integer idUsuario);
+    List<Retiro> findByUsuario_IdUsuario(Integer idUsuario);
 
     /**
      * Retiros de un usuario en una fecha concreta.
      * Útil para el detalle de gastos del corte de un cajero.
+     * Navega por la relación @ManyToOne: usuario.idUsuario
      *
-     * SELECT * FROM retiro WHERE id_usuario = ? AND fecha_retiro = ?
+     * SELECT * FROM RETIRO WHERE id_usuario = ? AND fecha_retiro = ?
      */
-    List<Retiro> findById_usuarioAndFecha_retiro(Integer idUsuario, LocalDate fechaRetiro);
+    List<Retiro> findByUsuario_IdUsuarioAndFechaRetiro(Integer idUsuario, LocalDate fechaRetiro);
 
     /**
      * Suma el total de retiros de una fecha.
-     * Usado por CorteService para calcular total_gastos_dia directamente en BD.
+     * Usado por CorteService para calcular totalGastosDia directamente en BD.
      *
-     * SELECT SUM(monto_retiro) FROM retiro WHERE fecha_retiro = :fecha
+     * SELECT SUM(monto_retiro) FROM RETIRO WHERE fecha_retiro = :fecha
      */
-    @Query("SELECT COALESCE(SUM(r.monto_retiro), 0) FROM Retiro r WHERE r.fecha_retiro = :fecha")
+    @Query("SELECT COALESCE(SUM(r.montoRetiro), 0) FROM Retiro r WHERE r.fechaRetiro = :fecha")
     BigDecimal sumMontoByFecha(@Param("fecha") LocalDate fecha);
 }

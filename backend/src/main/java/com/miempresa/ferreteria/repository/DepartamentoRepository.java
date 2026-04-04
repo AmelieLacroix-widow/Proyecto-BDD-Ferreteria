@@ -8,7 +8,7 @@ import java.util.Optional;
 
 /**
  * Repositorio para la entidad Departamento.
- * Tabla: departamento — PK: idDepartamento (Integer, camelCase)
+ * Tabla: DEPARTAMENTO — PK: idDepartamento (Integer)
  */
 @Repository
 public interface DepartamentoRepository extends JpaRepository<Departamento, Integer> {
@@ -17,14 +17,14 @@ public interface DepartamentoRepository extends JpaRepository<Departamento, Inte
      * Busca un departamento por nombre exacto.
      * Usado para validar duplicados antes de crear uno nuevo.
      *
-     * SELECT * FROM departamento WHERE nombre_departamento = ?
+     * SELECT * FROM DEPARTAMENTO WHERE nombre_departamento = ?
      */
     Optional<Departamento> findByNombreDepartamento(String nombreDepartamento);
 
     /**
      * Verifica si ya existe un departamento con ese nombre.
      *
-     * SELECT COUNT(*) > 0 FROM departamento WHERE nombre_departamento = ?
+     * SELECT COUNT(*) > 0 FROM DEPARTAMENTO WHERE nombre_departamento = ?
      */
     boolean existsByNombreDepartamento(String nombreDepartamento);
 }

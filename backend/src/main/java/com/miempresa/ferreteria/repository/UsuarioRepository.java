@@ -8,7 +8,7 @@ import java.util.Optional;
 
 /**
  * Repositorio para la entidad Usuario.
- * Tabla: usuario — PK: idUsuario (Integer)
+ * Tabla: USUARIO — PK: idUsuario (Integer)
  */
 @Repository
 public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
@@ -17,7 +17,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
      * Busca un usuario por nombre de usuario exacto.
      * Usado en AuthService para recuperar el hash y compararlo con SHA-256.
      *
-     * SELECT * FROM usuario WHERE nombre_usuario = ?
+     * SELECT * FROM USUARIO WHERE nombre_usuario = ?
      */
     Optional<Usuario> findByNombreUsuario(String nombreUsuario);
 
@@ -25,7 +25,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
      * Verifica si ya existe ese nombre de usuario.
      * Previene duplicados antes de crear un usuario nuevo.
      *
-     * SELECT COUNT(*) > 0 FROM usuario WHERE nombre_usuario = ?
+     * SELECT COUNT(*) > 0 FROM USUARIO WHERE nombre_usuario = ?
      */
     boolean existsByNombreUsuario(String nombreUsuario);
 }

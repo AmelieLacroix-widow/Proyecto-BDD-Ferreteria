@@ -13,74 +13,71 @@ import java.util.Optional;
 
 /**
  * Repositorio para la entidad Pago.
- * Tabla: pago — PK: id_pago (Integer, snake_case según la entidad)
+ * Tabla: PAGO — PK: idPago (Integer)
  *
- * Relación 1-a-1 con Ticket (UQ folio_ticket en BD).
+ * Relación 1-a-1 con Ticket (campo 'ticket' en la entidad, UQ folio_ticket en BD).
  */
 @Repository
 public interface PagoRepository extends JpaRepository<Pago, Integer> {
 
     /**
      * Busca el pago asociado a un ticket.
-     * Relación 1-a-1: cada ticket cobrado tiene exactamente un registro de pago.
+     * Relación @OneToOne: navega por ticket.folioTicket
      * Usado en VentasService para verificar si un ticket ya fue cobrado.
      *
-     * SELECT * FROM pago WHERE folio_ticket = ?
+     * SELECT * FROM PAGO WHERE folio_ticket = ?
      */
-    Optional<Pago> findByFolio_ticket(Integer folioTicket);
+    Optional<Pago> findByTicket_FolioTicket(Integer folioTicket);
 
     /**
      * Verifica si un ticket ya tiene un pago registrado.
      * Guard rápido antes de intentar cobrar un ticket.
      *
-     * SELECT COUNT(*) > 0 FROM pago WHERE folio_ticket = ?
+     * SELECT COUNT(*) > 0 FROM PAGO WHERE folio_ticket = ?
      */
-    boolean existsByFolio_ticket(Integer folioTicket);
+    boolean existsByTicket_FolioTicket(Integer folioTicket);
 
     /**
      * Devuelve todos los pagos por método de pago.
      * Útil para reportes de métodos más usados o conciliación.
      *
-     * SELECT * FROM pago WHERE metodo_pago = ?
+     * SELECT * FROM PAGO WHERE metodo_pago = ?
      */
-    List<Pago> findByMetodo_pago(String metodoPago);
+    List<Pago> findByMetodoPago(String metodoPago);
 
     /**
-     * Suma el monto_efectivo de todos los pagos de tickets cobrados en una fecha.
+     * Suma el montoEfectivo de todos los pagos de tickets cobrados en una fecha.
      * Usado por CorteService para calcular total_efectivo_dia.
-     *
-     * SELECT SUM(p.monto_efectivo) FROM pago p
-     * JOIN ticket t ON p.folio_ticket = t.folio_ticket
-     * WHERE t.fecha_transaccion = :fecha AND t.estado_documento = 'Pagado'
+     * Navega por la relación @OneToOne hacia Ticket.
      */
-    @Query("SELECT COALESCE(SUM(p.monto_efectivo), 0) FROM Pago p JOIN Ticket t ON p.folio_ticket = t.folio_ticket WHERE t.fecha_transaccion = :fecha AND t.estado_documento = 'Pagado'")
+    @Query("SELECT COALESCE(SUM(p.montoEfectivo), 0) FROM Pago p WHERE p.ticket.fechaTransaccion = :fecha AND p.ticket.estadoDocumento = 'Pagado'")
     BigDecimal sumEfectivoByFecha(@Param("fecha") LocalDate fecha);
 
     /**
-     * Suma el monto_tarjeta de los pagos del día.
+     * Suma el montoTarjeta de los pagos del día.
      * Usado por CorteService para calcular total_tarjeta_dia.
      */
-    @Query("SELECT COALESCE(SUM(p.monto_tarjeta), 0) FROM Pago p JOIN Ticket t ON p.folio_ticket = t.folio_ticket WHERE t.fecha_transaccion = :fecha AND t.estado_documento = 'Pagado'")
+    @Query("SELECT COALESCE(SUM(p.montoTarjeta), 0) FROM Pago p WHERE p.ticket.fechaTransaccion = :fecha AND p.ticket.estadoDocumento = 'Pagado'")
     BigDecimal sumTarjetaByFecha(@Param("fecha") LocalDate fecha);
 
     /**
-     * Suma el monto_transferencia de los pagos del día.
+     * Suma el montoTransferencia de los pagos del día.
      * Usado por CorteService para calcular total_transferencia_dia.
      */
-    @Query("SELECT COALESCE(SUM(p.monto_transferencia), 0) FROM Pago p JOIN Ticket t ON p.folio_ticket = t.folio_ticket WHERE t.fecha_transaccion = :fecha AND t.estado_documento = 'Pagado'")
+    @Query("SELECT COALESCE(SUM(p.montoTransferencia), 0) FROM Pago p WHERE p.ticket.fechaTransaccion = :fecha AND p.ticket.estadoDocumento = 'Pagado'")
     BigDecimal sumTransferenciaByFecha(@Param("fecha") LocalDate fecha);
 
     /**
-     * Suma el monto_credito de los pagos del día.
+     * Suma el montoCredito de los pagos del día.
      * Usado por CorteService para calcular total_credito_dia.
      */
-    @Query("SELECT COALESCE(SUM(p.monto_credito), 0) FROM Pago p JOIN Ticket t ON p.folio_ticket = t.folio_ticket WHERE t.fecha_transaccion = :fecha AND t.estado_documento = 'Pagado'")
+    @Query("SELECT COALESCE(SUM(p.montoCredito), 0) FROM Pago p WHERE p.ticket.fechaTransaccion = :fecha AND p.ticket.estadoDocumento = 'Pagado'")
     BigDecimal sumCreditoByFecha(@Param("fecha") LocalDate fecha);
 
     /**
-     * Suma el monto_cheque de los pagos del día.
+     * Suma el montoCheque de los pagos del día.
      * Usado por CorteService para calcular total_cheque_dia.
      */
-    @Query("SELECT COALESCE(SUM(p.monto_cheque), 0) FROM Pago p JOIN Ticket t ON p.folio_ticket = t.folio_ticket WHERE t.fecha_transaccion = :fecha AND t.estado_documento = 'Pagado'")
+    @Query("SELECT COALESCE(SUM(p.montoCheque), 0) FROM Pago p WHERE p.ticket.fechaTransaccion = :fecha AND p.ticket.estadoDocumento = 'Pagado'")
     BigDecimal sumChequeByFecha(@Param("fecha") LocalDate fecha);
 }

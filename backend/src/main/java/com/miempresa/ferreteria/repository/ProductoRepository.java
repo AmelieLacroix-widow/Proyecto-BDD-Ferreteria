@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * Repositorio para la entidad Producto.
- * Tabla: producto — PK: codigoBarras (String, camelCase, no auto-generada)
+ * Tabla: PRODUCTO — PK: codigoBarras (String, no auto-generada)
  */
 @Repository
 public interface ProductoRepository extends JpaRepository<Producto, String> {
@@ -22,7 +22,7 @@ public interface ProductoRepository extends JpaRepository<Producto, String> {
      * Búsqueda de catálogo por texto libre en descripción o código de barras.
      * Equivale al campo de búsqueda con lupa de la pantalla de Productos.
      *
-     * SELECT * FROM producto
+     * SELECT * FROM PRODUCTO
      * WHERE descripcion LIKE %?% OR codigo_barras LIKE %?%
      */
     List<Producto> findByDescripcionContainingIgnoreCaseOrCodigoBarrasContaining(
@@ -30,39 +30,42 @@ public interface ProductoRepository extends JpaRepository<Producto, String> {
 
     /**
      * Filtra el catálogo completo por departamento.
+     * Navega por la relación @ManyToOne: departamento.idDepartamento
      *
-     * SELECT * FROM producto WHERE id_departamento = ?
+     * SELECT * FROM PRODUCTO WHERE id_departamento = ?
      */
-    List<Producto> findByIdDepartamento(Integer idDepartamento);
+    List<Producto> findByDepartamento_IdDepartamento(Integer idDepartamento);
 
     /**
      * Filtra el catálogo completo por proveedor.
+     * Navega por la relación @ManyToOne: proveedor.idProveedor
      *
-     * SELECT * FROM producto WHERE id_proveedor = ?
+     * SELECT * FROM PRODUCTO WHERE id_proveedor = ?
      */
-    List<Producto> findByIdProveedor(Integer idProveedor);
+    List<Producto> findByProveedor_IdProveedor(Integer idProveedor);
 
     /**
      * Devuelve solo los productos con inventario activo (usa_inventario = TRUE).
      * Base del módulo de Inventario.
      *
-     * SELECT * FROM producto WHERE usa_inventario = TRUE
+     * SELECT * FROM PRODUCTO WHERE usa_inventario = TRUE
      */
     List<Producto> findByUsaInventarioTrue();
 
     /**
      * Productos con inventario activo, filtrados además por departamento.
      * Combinación del filtro de Inventario + selector de departamento.
+     * Navega por la relación @ManyToOne: departamento.idDepartamento
      *
-     * SELECT * FROM producto WHERE usa_inventario = TRUE AND id_departamento = ?
+     * SELECT * FROM PRODUCTO WHERE usa_inventario = TRUE AND id_departamento = ?
      */
-    List<Producto> findByUsaInventarioTrueAndIdDepartamento(Integer idDepartamento);
+    List<Producto> findByUsaInventarioTrueAndDepartamento_IdDepartamento(Integer idDepartamento);
 
     /**
      * Búsqueda por texto dentro de los productos con inventario activo.
      * Permite buscar en la tabla del módulo de Inventario.
      *
-     * SELECT * FROM producto
+     * SELECT * FROM PRODUCTO
      * WHERE usa_inventario = TRUE
      *   AND (descripcion LIKE %?% OR codigo_barras LIKE %?%)
      */
@@ -72,9 +75,9 @@ public interface ProductoRepository extends JpaRepository<Producto, String> {
     /**
      * Productos cuya existencia está en o por debajo del mínimo configurado.
      * Filtro "Solo mínimos" del reporte de inventario.
-     * Solo aplica a productos con inventario activo y con inv_minimo definido.
+     * Solo aplica a productos con inventario activo y con invMinimo definido.
      *
-     * SELECT * FROM producto
+     * SELECT * FROM PRODUCTO
      * WHERE usa_inventario = TRUE
      *   AND inv_minimo IS NOT NULL
      *   AND existencia <= inv_minimo
@@ -87,7 +90,7 @@ public interface ProductoRepository extends JpaRepository<Producto, String> {
      * Más eficiente que cargar toda la entidad para una sola operación de descuento/incremento.
      * Invocado por VentasService al cobrar y por InventarioService en ajustes manuales.
      *
-     * UPDATE producto SET existencia = :existencia WHERE codigo_barras = :codigoBarras
+     * UPDATE PRODUCTO SET existencia = :existencia WHERE codigo_barras = :codigoBarras
      */
     @Modifying
     @Transactional
@@ -99,7 +102,7 @@ public interface ProductoRepository extends JpaRepository<Producto, String> {
      * Suma el valor total del inventario (costo × existencia) para todos los productos activos.
      * Usado en el resumen global del módulo de Inventario.
      *
-     * SELECT SUM(precio_costo * existencia) FROM producto WHERE usa_inventario = TRUE
+     * SELECT SUM(precio_costo * existencia) FROM PRODUCTO WHERE usa_inventario = TRUE
      */
     @Query("SELECT COALESCE(SUM(p.precioCosto * p.existencia), 0) FROM Producto p WHERE p.usaInventario = TRUE")
     BigDecimal calcularCostoTotalInventario();
@@ -108,7 +111,7 @@ public interface ProductoRepository extends JpaRepository<Producto, String> {
      * Suma el total de unidades en existencia para todos los productos activos.
      * Usado en el contador "Cantidad de productos en inventario" del módulo de Inventario.
      *
-     * SELECT SUM(existencia) FROM producto WHERE usa_inventario = TRUE
+     * SELECT SUM(existencia) FROM PRODUCTO WHERE usa_inventario = TRUE
      */
     @Query("SELECT COALESCE(SUM(p.existencia), 0) FROM Producto p WHERE p.usaInventario = TRUE")
     BigDecimal calcularCantidadTotalInventario();

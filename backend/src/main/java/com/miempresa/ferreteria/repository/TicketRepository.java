@@ -6,12 +6,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
 /**
  * Repositorio para la entidad Ticket.
- * Tabla: ticket — PK: folio_ticket (Integer, snake_case según la entidad)
+ * Tabla: TICKET — PK: folioTicket (Integer)
  *
  * Tipos de documento: Ticket | Cotización | Re-Ticket | Devolución
  * Estados:            Activo | Pagado | Cancelado
@@ -22,72 +23,76 @@ public interface TicketRepository extends JpaRepository<Ticket, Integer> {
     /**
      * Devuelve todos los tickets con estado "Activo" de un usuario.
      * Usado para mostrar las pestañas de tickets abiertos en el módulo de Ventas.
+     * Navega por la relación @ManyToOne: usuario.idUsuario
      *
-     * SELECT * FROM ticket WHERE id_usuario = ? AND estado_documento = 'Activo'
+     * SELECT * FROM TICKET WHERE id_usuario = ? AND estado_documento = 'Activo'
      */
-    List<Ticket> findById_usuarioAndEstado_documento(Integer idUsuario, String estadoDocumento);
+    List<Ticket> findByUsuario_IdUsuarioAndEstadoDocumento(Integer idUsuario, String estadoDocumento);
 
     /**
      * Devuelve todos los tickets de una fecha específica.
      * Usado por el módulo de Corte para calcular los totales del día.
      *
-     * SELECT * FROM ticket WHERE fecha_transaccion = ?
+     * SELECT * FROM TICKET WHERE fecha_transaccion = ?
      */
-    List<Ticket> findByFecha_transaccion(LocalDate fechaTransaccion);
+    List<Ticket> findByFechaTransaccion(LocalDate fechaTransaccion);
 
     /**
-     * Devuelve los tickets pagados de una fecha específica.
-     * Más preciso que el anterior para calcular totales reales del corte
+     * Devuelve los tickets pagados de una fecha y tipo específicos.
+     * Más preciso para calcular totales reales del corte
      * (excluye tickets cancelados o activos sin cobrar).
      *
-     * SELECT * FROM ticket
+     * SELECT * FROM TICKET
      * WHERE fecha_transaccion = ?
      *   AND estado_documento = 'Pagado'
      *   AND tipo_documento = 'Ticket'
      */
-    List<Ticket> findByFecha_transaccionAndEstado_documentoAndTipo_documento(
+    List<Ticket> findByFechaTransaccionAndEstadoDocumentoAndTipoDocumento(
             LocalDate fechaTransaccion, String estadoDocumento, String tipoDocumento);
 
     /**
      * Devuelve los tickets de un cliente específico.
      * Usado en el historial de ventas del cliente (módulo de Clientes).
+     * Navega por la relación @ManyToOne: cliente.idCliente
      *
-     * SELECT * FROM ticket WHERE id_cliente = ?
+     * SELECT * FROM TICKET WHERE id_cliente = ?
      */
-    List<Ticket> findById_cliente(Integer idCliente);
+    List<Ticket> findByCliente_IdCliente(Integer idCliente);
 
     /**
      * Devuelve los tickets de un cliente filtrados por tipo de documento.
      * Permite separar Ventas / Créditos / Cotizaciones en el historial.
+     * Navega por la relación @ManyToOne: cliente.idCliente
      *
-     * SELECT * FROM ticket WHERE id_cliente = ? AND tipo_documento = ?
+     * SELECT * FROM TICKET WHERE id_cliente = ? AND tipo_documento = ?
      */
-    List<Ticket> findById_clienteAndTipo_documento(Integer idCliente, String tipoDocumento);
+    List<Ticket> findByCliente_IdClienteAndTipoDocumento(Integer idCliente, String tipoDocumento);
 
     /**
      * Tickets en un rango de fechas, útil para reportes.
      *
-     * SELECT * FROM ticket WHERE fecha_transaccion BETWEEN ? AND ?
+     * SELECT * FROM TICKET WHERE fecha_transaccion BETWEEN ? AND ?
      */
-    List<Ticket> findByFecha_transaccionBetween(LocalDate desde, LocalDate hasta);
+    List<Ticket> findByFechaTransaccionBetween(LocalDate desde, LocalDate hasta);
 
     /**
      * Tickets que referencian a otro ticket (Re-Tickets y Devoluciones).
      * Permite trazabilidad: dado un folio original, saber qué documentos derivaron de él.
+     * Navega por la relación @ManyToOne: ticketReferencia.folioTicket
      *
-     * SELECT * FROM ticket WHERE folio_referencia = ?
+     * SELECT * FROM TICKET WHERE folio_referencia = ?
      */
-    List<Ticket> findByFolio_referencia(Integer folioReferencia);
+    List<Ticket> findByTicketReferencia_FolioTicket(Integer folioTicket);
 
     /**
-     * Suma el total_neto de todos los tickets Pagados de tipo Ticket en una fecha.
+     * Suma el totalNeto de todos los tickets Pagados de tipo Ticket en una fecha.
      * Usado por CorteService para calcular total_ventas_dia sin traer todas las entidades.
      *
-     * SELECT SUM(total_neto) FROM ticket
+     * SELECT SUM(total_neto) FROM TICKET
      * WHERE fecha_transaccion = :fecha
      *   AND estado_documento = 'Pagado'
      *   AND tipo_documento = 'Ticket'
      */
-    @Query("SELECT COALESCE(SUM(t.total_neto), 0) FROM Ticket t WHERE t.fecha_transaccion = :fecha AND t.estado_documento = 'Pagado' AND t.tipo_documento = 'Ticket'")
-    java.math.BigDecimal sumTotalNetoPagadoByFecha(@Param("fecha") LocalDate fecha);
+    @Query("SELECT COALESCE(SUM(t.totalNeto), 0) FROM Ticket t WHERE t.fechaTransaccion = :fecha AND t.estadoDocumento = 'Pagado' AND t.tipoDocumento = 'Ticket'")
+    BigDecimal sumTotalNetoPagadoByFecha(@Param("fecha") LocalDate fecha);
 }
