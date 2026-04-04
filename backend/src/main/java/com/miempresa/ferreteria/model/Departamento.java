@@ -3,19 +3,19 @@ package com.miempresa.ferreteria.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "departamento")
+@Table(name = "DEPARTAMENTO")
 public class Departamento {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_departamento")
-    private Integer idDepartamento; // PK [cite: 1]
+    private Integer idDepartamento;
 
-    @Column(name = "nombre_departamento", length = 100)
-    private String nombreDepartamento; // [cite: 1]
+    @Column(name = "nombre_departamento", length = 100, nullable = false)
+    private String nombreDepartamento;
 
     @Column(name = "descripcion_departamento", length = 200)
-    private String descripcionDepartamento; // [cite: 1]
+    private String descripcionDepartamento;
 
     // --- Getters y Setters ---
 

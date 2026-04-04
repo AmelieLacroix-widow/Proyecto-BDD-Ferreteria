@@ -6,153 +6,148 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Entity
-@Table(name = "ticket")
+@Table(name = "TICKET")
 public class Ticket {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "folio_ticket")
-    private Integer folio_ticket; // PK 
+    private Integer folioTicket;
 
-    @Column(name = "tipo_documento", length = 20)
-    private String tipo_documento; 
+    @Column(name = "tipo_documento", length = 20, nullable = false)
+    private String tipoDocumento;
 
-    @Column(name = "estado_documento", length = 20)
-    private String estado_documento; 
+    @Column(name = "estado_documento", length = 15, nullable = false)
+    private String estadoDocumento;
 
-    @Column(name = "fecha_transaccion")
-    private LocalDate fecha_transaccion; 
+    @Column(name = "fecha_transaccion", nullable = false)
+    private LocalDate fechaTransaccion;
 
-    @Column(name = "hora_transaccion")
-    private LocalTime hora_transaccion; 
+    @Column(name = "hora_transaccion", nullable = false)
+    private LocalTime horaTransaccion;
 
-    @Column(name = "folio_referencia")
-    private Integer folio_referencia; // FK [cite: 132, 133]
+    // Auto-referencia: un Re-Ticket o Devolución puede apuntar al ticket original
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "folio_referencia")
+    private Ticket ticketReferencia;
 
-    @Column(name = "total_bruto", precision = 10, scale = 2)
-    private BigDecimal total_bruto; // [cite: 136, 137]
+    @Column(name = "total_bruto", precision = 10, scale = 2, nullable = false)
+    private BigDecimal totalBruto;
 
-    @Column(name = "porcentaje_descuento", precision = 5, scale = 3)
-    private BigDecimal porcentaje_descuento; // [cite: 140, 141]
+    @Column(name = "porcentaje_descuento", precision = 5, scale = 3, nullable = false)
+    private BigDecimal porcentajeDescuento;
 
-    @Column(name = "total_descuento", precision = 10, scale = 2)
-    private BigDecimal total_descuento; // [cite: 144, 145]
+    @Column(name = "total_descuento", precision = 10, scale = 2, nullable = false)
+    private BigDecimal totalDescuento;
 
-    @Column(name = "total_neto", precision = 10, scale = 2)
-    private BigDecimal total_neto; // [cite: 156, 157]
+    @Column(name = "total_neto", precision = 10, scale = 2, nullable = false)
+    private BigDecimal totalNeto;
 
-    @Column(name = "id_cliente")
-    private Integer id_cliente; // FK [cite: 163, 164]
+    // Relación ManyToOne con Cliente (nullable: una venta puede ser sin cliente)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_cliente")
+    private Cliente cliente;
 
-    @Column(name = "id_usuario")
-    private Integer id_usuario; // FK [cite: 167, 168]
-
-    @Column(columnDefinition = "TEXT")
-    private String notas; // [cite: 171, 172]
+    // Relación ManyToOne con Usuario (nullable = false: toda venta requiere cajero)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario", nullable = false)
+    private Usuario usuario;
 
     // --- Getters y Setters ---
 
-    public Integer getFolio_ticket() {
-        return folio_ticket;
+    public Integer getFolioTicket() {
+        return folioTicket;
     }
 
-    public void setFolio_ticket(Integer folio_ticket) {
-        this.folio_ticket = folio_ticket;
+    public void setFolioTicket(Integer folioTicket) {
+        this.folioTicket = folioTicket;
     }
 
-    public String getTipo_documento() {
-        return tipo_documento;
+    public String getTipoDocumento() {
+        return tipoDocumento;
     }
 
-    public void setTipo_documento(String tipo_documento) {
-        this.tipo_documento = tipo_documento;
+    public void setTipoDocumento(String tipoDocumento) {
+        this.tipoDocumento = tipoDocumento;
     }
 
-    public String getEstado_documento() {
-        return estado_documento;
+    public String getEstadoDocumento() {
+        return estadoDocumento;
     }
 
-    public void setEstado_documento(String estado_documento) {
-        this.estado_documento = estado_documento;
+    public void setEstadoDocumento(String estadoDocumento) {
+        this.estadoDocumento = estadoDocumento;
     }
 
-    public LocalDate getFecha_transaccion() {
-        return fecha_transaccion;
+    public LocalDate getFechaTransaccion() {
+        return fechaTransaccion;
     }
 
-    public void setFecha_transaccion(LocalDate fecha_transaccion) {
-        this.fecha_transaccion = fecha_transaccion;
+    public void setFechaTransaccion(LocalDate fechaTransaccion) {
+        this.fechaTransaccion = fechaTransaccion;
     }
 
-    public LocalTime getHora_transaccion() {
-        return hora_transaccion;
+    public LocalTime getHoraTransaccion() {
+        return horaTransaccion;
     }
 
-    public void setHora_transaccion(LocalTime hora_transaccion) {
-        this.hora_transaccion = hora_transaccion;
+    public void setHoraTransaccion(LocalTime horaTransaccion) {
+        this.horaTransaccion = horaTransaccion;
     }
 
-    public Integer getFolio_referencia() {
-        return folio_referencia;
+    public Ticket getTicketReferencia() {
+        return ticketReferencia;
     }
 
-    public void setFolio_referencia(Integer folio_referencia) {
-        this.folio_referencia = folio_referencia;
+    public void setTicketReferencia(Ticket ticketReferencia) {
+        this.ticketReferencia = ticketReferencia;
     }
 
-    public BigDecimal getTotal_bruto() {
-        return total_bruto;
+    public BigDecimal getTotalBruto() {
+        return totalBruto;
     }
 
-    public void setTotal_bruto(BigDecimal total_bruto) {
-        this.total_bruto = total_bruto;
+    public void setTotalBruto(BigDecimal totalBruto) {
+        this.totalBruto = totalBruto;
     }
 
-    public BigDecimal getPorcentaje_descuento() {
-        return porcentaje_descuento;
+    public BigDecimal getPorcentajeDescuento() {
+        return porcentajeDescuento;
     }
 
-    public void setPorcentaje_descuento(BigDecimal porcentaje_descuento) {
-        this.porcentaje_descuento = porcentaje_descuento;
+    public void setPorcentajeDescuento(BigDecimal porcentajeDescuento) {
+        this.porcentajeDescuento = porcentajeDescuento;
     }
 
-    public BigDecimal getTotal_descuento() {
-        return total_descuento;
+    public BigDecimal getTotalDescuento() {
+        return totalDescuento;
     }
 
-    public void setTotal_descuento(BigDecimal total_descuento) {
-        this.total_descuento = total_descuento;
+    public void setTotalDescuento(BigDecimal totalDescuento) {
+        this.totalDescuento = totalDescuento;
     }
 
-    public BigDecimal getTotal_neto() {
-        return total_neto;
+    public BigDecimal getTotalNeto() {
+        return totalNeto;
     }
 
-    public void setTotal_neto(BigDecimal total_neto) {
-        this.total_neto = total_neto;
+    public void setTotalNeto(BigDecimal totalNeto) {
+        this.totalNeto = totalNeto;
     }
 
-    public Integer getId_cliente() {
-        return id_cliente;
+    public Cliente getCliente() {
+        return cliente;
     }
 
-    public void setId_cliente(Integer id_cliente) {
-        this.id_cliente = id_cliente;
+    public void setCliente(Cliente cliente) {
+        this.cliente = cliente;
     }
 
-    public Integer getId_usuario() {
-        return id_usuario;
+    public Usuario getUsuario() {
+        return usuario;
     }
 
-    public void setId_usuario(Integer id_usuario) {
-        this.id_usuario = id_usuario;
-    }
-
-    public String getNotas() {
-        return notas;
-    }
-
-    public void setNotas(String notas) {
-        this.notas = notas;
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 }

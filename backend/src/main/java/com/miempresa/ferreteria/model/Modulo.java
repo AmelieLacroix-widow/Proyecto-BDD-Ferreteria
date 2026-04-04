@@ -3,32 +3,32 @@ package com.miempresa.ferreteria.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "modulo")
+@Table(name = "MODULO")
 public class Modulo {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_modulo")
-    private Integer id_modulo; // PK [cite: 1, 4, 5]
+    private Integer idModulo;
 
-    @Column(name = "nombre_modulo", length = 50)
-    private String nombre_modulo; // [cite: 1, 4, 5]
+    @Column(name = "nombre_modulo", length = 50, nullable = false, unique = true)
+    private String nombreModulo;
 
     // --- Getters y Setters ---
 
-    public Integer getId_modulo() {
-        return id_modulo;
+    public Integer getIdModulo() {
+        return idModulo;
     }
 
-    public void setId_modulo(Integer id_modulo) {
-        this.id_modulo = id_modulo;
+    public void setIdModulo(Integer idModulo) {
+        this.idModulo = idModulo;
     }
 
-    public String getNombre_modulo() {
-        return nombre_modulo;
+    public String getNombreModulo() {
+        return nombreModulo;
     }
 
-    public void setNombre_modulo(String nombre_modulo) {
-        this.nombre_modulo = nombre_modulo;
+    public void setNombreModulo(String nombreModulo) {
+        this.nombreModulo = nombreModulo;
     }
 }

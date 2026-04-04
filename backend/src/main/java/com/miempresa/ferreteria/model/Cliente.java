@@ -4,52 +4,52 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "cliente")
+@Table(name = "CLIENTE")
 public class Cliente {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_cliente")
-    private Integer idCliente; // PK [cite: 173, 175]
+    private Integer idCliente;
 
-    @Column(length = 100)
-    private String nombres; // [cite: 176, 179]
+    @Column(name = "nombres", length = 100, nullable = false)
+    private String nombres;
 
     @Column(name = "apellido_paterno", length = 100)
-    private String apellidoPaterno; // [cite: 177, 180]
+    private String apellidoPaterno;
 
     @Column(name = "apellido_materno", length = 100)
-    private String apellidoMaterno; // [cite: 182, 183]
+    private String apellidoMaterno;
 
-    @Column(length = 20)
-    private String telefono; // [cite: 189, 190]
+    @Column(name = "telefono", length = 20)
+    private String telefono;
 
-    @Column(length = 100)
-    private String correo; // [cite: 191, 192]
+    @Column(name = "correo", length = 100)
+    private String correo;
 
-    @Column(length = 200)
-    private String domicilio; // [cite: 195, 196]
+    @Column(name = "domicilio", length = 200)
+    private String domicilio;
 
-    @Column(length = 100)
-    private String colonia; // [cite: 199, 200]
+    @Column(name = "colonia", length = 100)
+    private String colonia;
 
     @Column(name = "municipio_estado", length = 100)
-    private String municipioEstado; // [cite: 203, 204]
+    private String municipioEstado;
 
     @Column(name = "codigo_postal", length = 10)
-    private String codigoPostal; // [cite: 207, 208]
+    private String codigoPostal;
 
-    @Column(columnDefinition = "TEXT")
-    private String notas; // [cite: 211, 212]
+    @Column(name = "notas", columnDefinition = "TEXT")
+    private String notas;
 
-    @Column(name = "tiene_credito")
-    private Boolean tieneCredito; // [cite: 215, 216]
+    @Column(name = "tiene_credito", nullable = false)
+    private Boolean tieneCredito;
 
     @Column(name = "limite_credito", precision = 10, scale = 2)
-    private BigDecimal limiteCredito; // [cite: 217, 218]
+    private BigDecimal limiteCredito;
 
-    @Column(name = "saldo_credito", precision = 10, scale = 2)
-    private BigDecimal saldoCredito; // [cite: 231, 232]
+    @Column(name = "saldo_credito", precision = 10, scale = 2, nullable = false)
+    private BigDecimal saldoCredito;
 
     // --- Getters y Setters ---
 

@@ -3,33 +3,60 @@ package com.miempresa.ferreteria.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "usuario_modulo")
+@Table(name = "USUARIO_MODULO")
 @IdClass(UsuarioModuloId.class)
 public class UsuarioModulo {
 
+    // El nombre del atributo DEBE coincidir con UsuarioModuloId.idUsuario
     @Id
     @Column(name = "id_usuario")
-    private Integer id_usuario; // PK FK [cite: 15, 16]
+    private Integer idUsuario;
 
+    // El nombre del atributo DEBE coincidir con UsuarioModuloId.idModulo
     @Id
     @Column(name = "id_modulo")
-    private Integer id_modulo; // PK FK [cite: 15, 17]
+    private Integer idModulo;
+
+    // Relaciones ManyToOne para poder navegar a los objetos completos
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario", insertable = false, updatable = false)
+    private Usuario usuario;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_modulo", insertable = false, updatable = false)
+    private Modulo modulo;
 
     // --- Getters y Setters ---
 
-    public Integer getId_usuario() {
-        return id_usuario;
+    public Integer getIdUsuario() {
+        return idUsuario;
     }
 
-    public void setId_usuario(Integer id_usuario) {
-        this.id_usuario = id_usuario;
+    public void setIdUsuario(Integer idUsuario) {
+        this.idUsuario = idUsuario;
     }
 
-    public Integer getId_modulo() {
-        return id_modulo;
+    public Integer getIdModulo() {
+        return idModulo;
     }
 
-    public void setId_modulo(Integer id_modulo) {
-        this.id_modulo = id_modulo;
+    public void setIdModulo(Integer idModulo) {
+        this.idModulo = idModulo;
+    }
+
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
+    }
+
+    public Modulo getModulo() {
+        return modulo;
+    }
+
+    public void setModulo(Modulo modulo) {
+        this.modulo = modulo;
     }
 }

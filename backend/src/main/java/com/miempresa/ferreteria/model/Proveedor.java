@@ -3,28 +3,28 @@ package com.miempresa.ferreteria.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "proveedor")
+@Table(name = "PROVEEDOR")
 public class Proveedor {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_proveedor")
-    private Integer idProveedor; // PK 
+    private Integer idProveedor;
 
-    @Column(name = "nombre_proveedor", length = 200)
-    private String nombreProveedor; // [cite: 149]
+    @Column(name = "nombre_proveedor", length = 200, nullable = false)
+    private String nombreProveedor;
 
-    @Column(length = 20)
-    private String telefono; // [cite: 152]
+    @Column(name = "telefono", length = 20)
+    private String telefono;
 
-    @Column(length = 100)
-    private String correo; // [cite: 153]
+    @Column(name = "correo", length = 100)
+    private String correo;
 
-    @Column(length = 300)
-    private String direccion; // [cite: 154]
+    @Column(name = "direccion", length = 300)
+    private String direccion;
 
-    @Column(columnDefinition = "TEXT")
-    private String notas; // [cite: 171]
+    @Column(name = "notas", columnDefinition = "TEXT")
+    private String notas;
 
     // --- Getters y Setters ---
 

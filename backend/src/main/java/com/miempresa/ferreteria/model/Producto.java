@@ -4,37 +4,40 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "producto")
+@Table(name = "PRODUCTO")
 public class Producto {
 
     @Id
     @Column(name = "codigo_barras", length = 50)
-    private String codigoBarras; // PK
+    private String codigoBarras;
 
-    @Column(length = 200)
+    @Column(name = "descripcion", length = 200, nullable = false)
     private String descripcion;
 
-    @Column(name = "precio_costo")
+    @Column(name = "precio_costo", precision = 10, scale = 2, nullable = false)
     private BigDecimal precioCosto;
 
-    @Column(name = "porcentaje_ganancia")
+    @Column(name = "porcentaje_ganancia", precision = 5, scale = 2, nullable = false)
     private BigDecimal porcentajeGanancia;
 
-    @Column(name = "precio_venta_lista")
+    @Column(name = "precio_venta_lista", precision = 10, scale = 2, nullable = false)
     private BigDecimal precioVentaLista;
 
+    // Inventario usa scale=3 para soportar granel (ej. 1.550 kg)
+    @Column(name = "existencia", precision = 10, scale = 3, nullable = false)
     private BigDecimal existencia;
 
-    @Column(name = "inv_minimo")
+    @Column(name = "inv_minimo", precision = 10, scale = 3)
     private BigDecimal invMinimo;
 
-    @Column(name = "inv_maximo")
+    @Column(name = "inv_maximo", precision = 10, scale = 3)
     private BigDecimal invMaximo;
 
-    @Column(length = 10)
+    // Solo acepta 'Pza' o 'Granel' según el CHECK del SQL
+    @Column(name = "unidad", length = 10, nullable = false)
     private String unidad;
 
-    @Column(name = "usa_inventario")
+    @Column(name = "usa_inventario", nullable = false)
     private Boolean usaInventario;
 
     @Column(name = "cfdi_clave_producto", length = 20)
@@ -43,11 +46,17 @@ public class Producto {
     @Column(name = "cfdi_unidad_medida", length = 20)
     private String cfdiUnidadMedida;
 
-    @Column(name = "id_departamento")
-    private Integer idDepartamento; // FK
+    // Relación ManyToOne con Departamento (antes era solo un Integer)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_departamento")
+    private Departamento departamento;
 
-    @Column(name = "id_proveedor")
-    private Integer idProveedor; // FK
+    // Relación ManyToOne con Proveedor (antes era solo un Integer)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_proveedor")
+    private Proveedor proveedor;
+
+    // --- Getters y Setters ---
 
     public String getCodigoBarras() {
         return codigoBarras;
@@ -145,20 +154,19 @@ public class Producto {
         this.cfdiUnidadMedida = cfdiUnidadMedida;
     }
 
-    public Integer getIdDepartamento() {
-        return idDepartamento;
+    public Departamento getDepartamento() {
+        return departamento;
     }
 
-    public void setIdDepartamento(Integer idDepartamento) {
-        this.idDepartamento = idDepartamento;
+    public void setDepartamento(Departamento departamento) {
+        this.departamento = departamento;
     }
 
-    public Integer getIdProveedor() {
-        return idProveedor;
+    public Proveedor getProveedor() {
+        return proveedor;
     }
 
-    public void setIdProveedor(Integer idProveedor) {
-        this.idProveedor = idProveedor;
+    public void setProveedor(Proveedor proveedor) {
+        this.proveedor = proveedor;
     }
-
 }

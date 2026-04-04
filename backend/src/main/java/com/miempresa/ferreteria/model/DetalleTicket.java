@@ -4,47 +4,105 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "detalle_ticket")
+@Table(name = "DETALLE_TICKET")
 @IdClass(DetalleTicketId.class)
 public class DetalleTicket {
 
+    // Nombre del atributo DEBE coincidir con DetalleTicketId.folioTicket
     @Id
     @Column(name = "folio_ticket")
-    private Integer folio_ticket; // PK FK [cite: 83, 96]
+    private Integer folioTicket;
 
+    // Nombre del atributo DEBE coincidir con DetalleTicketId.codigoBarras
     @Id
     @Column(name = "codigo_barras", length = 50)
-    private String codigo_barras; // PK FK [cite: 86, 97]
+    private String codigoBarras;
 
-    @Column(name = "cantidad", precision = 10, scale = 3)
-    private BigDecimal cantidad; // [cite: 88, 89, 98]
+    // Relaciones ManyToOne para navegar a los objetos completos
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "folio_ticket", insertable = false, updatable = false)
+    private Ticket ticket;
 
-    @Column(name = "precio_unitario_venta", precision = 10, scale = 2)
-    private BigDecimal precio_unitario_venta; // [cite: 95, 99]
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "codigo_barras", insertable = false, updatable = false)
+    private Producto producto;
 
-    @Column(name = "importe", precision = 10, scale = 2)
-    private BigDecimal importe; // [cite: 100, 101]
+    // Inventario usa scale=3 para soportar granel (ej. 1.550 kg)
+    @Column(name = "cantidad", precision = 10, scale = 3, nullable = false)
+    private BigDecimal cantidad;
 
-    @Column(name = "descuento_producto", precision = 5, scale = 3)
-    private BigDecimal descuento_producto; // [cite: 102, 103]
+    @Column(name = "precio_unitario_venta", precision = 10, scale = 2, nullable = false)
+    private BigDecimal precioUnitarioVenta;
+
+    @Column(name = "importe", precision = 10, scale = 2, nullable = false)
+    private BigDecimal importe;
+
+    @Column(name = "descuento_producto", precision = 5, scale = 3, nullable = false)
+    private BigDecimal descuentoProducto;
 
     // --- Getters y Setters ---
 
-    public Integer getFolio_ticket() { return folio_ticket; }
-    public void setFolio_ticket(Integer folio_ticket) { this.folio_ticket = folio_ticket; }
+    public Integer getFolioTicket() {
+        return folioTicket;
+    }
 
-    public String getCodigo_barras() { return codigo_barras; }
-    public void setCodigo_barras(String codigo_barras) { this.codigo_barras = codigo_barras; }
+    public void setFolioTicket(Integer folioTicket) {
+        this.folioTicket = folioTicket;
+    }
 
-    public BigDecimal getCantidad() { return cantidad; }
-    public void setCantidad(BigDecimal cantidad) { this.cantidad = cantidad; }
+    public String getCodigoBarras() {
+        return codigoBarras;
+    }
 
-    public BigDecimal getPrecio_unitario_venta() { return precio_unitario_venta; }
-    public void setPrecio_unitario_venta(BigDecimal precio_unitario_venta) { this.precio_unitario_venta = precio_unitario_venta; }
+    public void setCodigoBarras(String codigoBarras) {
+        this.codigoBarras = codigoBarras;
+    }
 
-    public BigDecimal getImporte() { return importe; }
-    public void setImporte(BigDecimal importe) { this.importe = importe; }
+    public Ticket getTicket() {
+        return ticket;
+    }
 
-    public BigDecimal getDescuento_producto() { return descuento_producto; }
-    public void setDescuento_producto(BigDecimal descuento_producto) { this.descuento_producto = descuento_producto; }
+    public void setTicket(Ticket ticket) {
+        this.ticket = ticket;
+    }
+
+    public Producto getProducto() {
+        return producto;
+    }
+
+    public void setProducto(Producto producto) {
+        this.producto = producto;
+    }
+
+    public BigDecimal getCantidad() {
+        return cantidad;
+    }
+
+    public void setCantidad(BigDecimal cantidad) {
+        this.cantidad = cantidad;
+    }
+
+    public BigDecimal getPrecioUnitarioVenta() {
+        return precioUnitarioVenta;
+    }
+
+    public void setPrecioUnitarioVenta(BigDecimal precioUnitarioVenta) {
+        this.precioUnitarioVenta = precioUnitarioVenta;
+    }
+
+    public BigDecimal getImporte() {
+        return importe;
+    }
+
+    public void setImporte(BigDecimal importe) {
+        this.importe = importe;
+    }
+
+    public BigDecimal getDescuentoProducto() {
+        return descuentoProducto;
+    }
+
+    public void setDescuentoProducto(BigDecimal descuentoProducto) {
+        this.descuentoProducto = descuentoProducto;
+    }
 }

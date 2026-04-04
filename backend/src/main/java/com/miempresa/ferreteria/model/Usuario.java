@@ -3,19 +3,19 @@ package com.miempresa.ferreteria.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "usuario")
+@Table(name = "USUARIO")
 public class Usuario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_usuario")
-    private Integer idUsuario; // PK 
+    private Integer idUsuario;
 
-    @Column(name = "nombre_usuario", length = 100)
-    private String nombreUsuario; // 
+    @Column(name = "nombre_usuario", length = 100, nullable = false, unique = true)
+    private String nombreUsuario;
 
-    @Column(name = "contrasena_hash", length = 255)
-    private String contrasenaHash; // 
+    @Column(name = "contrasena_hash", length = 255, nullable = false)
+    private String contrasenaHash;
 
     // --- Getters y Setters ---
 

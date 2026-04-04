@@ -4,100 +4,177 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "pago")
+@Table(name = "PAGO")
 public class Pago {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_pago")
-    private Integer id_pago; // PK [cite: 184, 185]
+    private Integer idPago;
 
-    @Column(name = "folio_ticket")
-    private Integer folio_ticket; // FK [cite: 186, 187]
+    // La columna folio_ticket tiene UNIQUE en SQL → relación @OneToOne, no @ManyToOne
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "folio_ticket", nullable = false, unique = true)
+    private Ticket ticket;
 
-    @Column(name = "metodo_pago", length = 20)
-    private String metodo_pago; // [cite: 193, 194]
+    @Column(name = "metodo_pago", length = 20, nullable = false)
+    private String metodoPago;
 
-    @Column(name = "monto_efectivo", precision = 10, scale = 2)
-    private BigDecimal monto_efectivo; // [cite: 197, 198]
+    @Column(name = "monto_efectivo", precision = 10, scale = 2, nullable = false)
+    private BigDecimal montoEfectivo;
 
     @Column(name = "pago_con", precision = 10, scale = 2)
-    private BigDecimal pago_con; // [cite: 201, 202]
+    private BigDecimal pagoCon;
 
     @Column(name = "cambio", precision = 10, scale = 2)
-    private BigDecimal cambio; // [cite: 205, 206]
+    private BigDecimal cambio;
 
-    @Column(name = "monto_tarjeta", precision = 10, scale = 2)
-    private BigDecimal monto_tarjeta; // [cite: 209, 210]
+    @Column(name = "monto_tarjeta", precision = 10, scale = 2, nullable = false)
+    private BigDecimal montoTarjeta;
 
     @Column(name = "referencia_tarjeta", length = 100)
-    private String referencia_tarjeta; // [cite: 213, 214]
+    private String referenciaTarjeta;
 
     @Column(name = "voucher_tarjeta")
-    private Boolean voucher_tarjeta; // [cite: 219, 226]
+    private Boolean voucherTarjeta;
 
-    @Column(name = "monto_transferencia", precision = 10, scale = 2)
-    private BigDecimal monto_transferencia; // [cite: 220, 226]
+    @Column(name = "monto_transferencia", precision = 10, scale = 2, nullable = false)
+    private BigDecimal montoTransferencia;
 
     @Column(name = "referencia_transferencia", length = 100)
-    private String referencia_transferencia; // [cite: 221, 227]
+    private String referenciaTransferencia;
 
     @Column(name = "voucher_transferencia")
-    private Boolean voucher_transferencia; // [cite: 222, 228]
+    private Boolean voucherTransferencia;
 
-    @Column(name = "monto_cheque", precision = 10, scale = 2)
-    private BigDecimal monto_cheque; // [cite: 223, 230]
+    @Column(name = "monto_cheque", precision = 10, scale = 2, nullable = false)
+    private BigDecimal montoCheque;
 
     @Column(name = "referencia_cheque", length = 100)
-    private String referencia_cheque; // [cite: 224, 229]
+    private String referenciaCheque;
 
-    @Column(name = "monto_credito", precision = 10, scale = 2)
-    private BigDecimal monto_credito; // [cite: 225, 230]
+    @Column(name = "monto_credito", precision = 10, scale = 2, nullable = false)
+    private BigDecimal montoCredito;
 
     // --- Getters y Setters ---
 
-    public Integer getId_pago() { return id_pago; }
-    public void setId_pago(Integer id_pago) { this.id_pago = id_pago; }
+    public Integer getIdPago() {
+        return idPago;
+    }
 
-    public Integer getFolio_ticket() { return folio_ticket; }
-    public void setFolio_ticket(Integer folio_ticket) { this.folio_ticket = folio_ticket; }
+    public void setIdPago(Integer idPago) {
+        this.idPago = idPago;
+    }
 
-    public String getMetodo_pago() { return metodo_pago; }
-    public void setMetodo_pago(String metodo_pago) { this.metodo_pago = metodo_pago; }
+    public Ticket getTicket() {
+        return ticket;
+    }
 
-    public BigDecimal getMonto_efectivo() { return monto_efectivo; }
-    public void setMonto_efectivo(BigDecimal monto_efectivo) { this.monto_efectivo = monto_efectivo; }
+    public void setTicket(Ticket ticket) {
+        this.ticket = ticket;
+    }
 
-    public BigDecimal getPago_con() { return pago_con; }
-    public void setPago_con(BigDecimal pago_con) { this.pago_con = pago_con; }
+    public String getMetodoPago() {
+        return metodoPago;
+    }
 
-    public BigDecimal getCambio() { return cambio; }
-    public void setCambio(BigDecimal cambio) { this.cambio = cambio; }
+    public void setMetodoPago(String metodoPago) {
+        this.metodoPago = metodoPago;
+    }
 
-    public BigDecimal getMonto_tarjeta() { return monto_tarjeta; }
-    public void setMonto_tarjeta(BigDecimal monto_tarjeta) { this.monto_tarjeta = monto_tarjeta; }
+    public BigDecimal getMontoEfectivo() {
+        return montoEfectivo;
+    }
 
-    public String getReferencia_tarjeta() { return referencia_tarjeta; }
-    public void setReferencia_tarjeta(String referencia_tarjeta) { this.referencia_tarjeta = referencia_tarjeta; }
+    public void setMontoEfectivo(BigDecimal montoEfectivo) {
+        this.montoEfectivo = montoEfectivo;
+    }
 
-    public Boolean getVoucher_tarjeta() { return voucher_tarjeta; }
-    public void setVoucher_tarjeta(Boolean voucher_tarjeta) { this.voucher_tarjeta = voucher_tarjeta; }
+    public BigDecimal getPagoCon() {
+        return pagoCon;
+    }
 
-    public BigDecimal getMonto_transferencia() { return monto_transferencia; }
-    public void setMonto_transferencia(BigDecimal monto_transferencia) { this.monto_transferencia = monto_transferencia; }
+    public void setPagoCon(BigDecimal pagoCon) {
+        this.pagoCon = pagoCon;
+    }
 
-    public String getReferencia_transferencia() { return referencia_transferencia; }
-    public void setReferencia_transferencia(String referencia_transferencia) { this.referencia_transferencia = referencia_transferencia; }
+    public BigDecimal getCambio() {
+        return cambio;
+    }
 
-    public Boolean getVoucher_transferencia() { return voucher_transferencia; }
-    public void setVoucher_transferencia(Boolean voucher_transferencia) { this.voucher_transferencia = voucher_transferencia; }
+    public void setCambio(BigDecimal cambio) {
+        this.cambio = cambio;
+    }
 
-    public BigDecimal getMonto_cheque() { return monto_cheque; }
-    public void setMonto_cheque(BigDecimal monto_cheque) { this.monto_cheque = monto_cheque; }
+    public BigDecimal getMontoTarjeta() {
+        return montoTarjeta;
+    }
 
-    public String getReferencia_cheque() { return referencia_cheque; }
-    public void setReferencia_cheque(String referencia_cheque) { this.referencia_cheque = referencia_cheque; }
+    public void setMontoTarjeta(BigDecimal montoTarjeta) {
+        this.montoTarjeta = montoTarjeta;
+    }
 
-    public BigDecimal getMonto_credito() { return monto_credito; }
-    public void setMonto_credito(BigDecimal monto_credito) { this.monto_credito = monto_credito; }
+    public String getReferenciaTarjeta() {
+        return referenciaTarjeta;
+    }
+
+    public void setReferenciaTarjeta(String referenciaTarjeta) {
+        this.referenciaTarjeta = referenciaTarjeta;
+    }
+
+    public Boolean getVoucherTarjeta() {
+        return voucherTarjeta;
+    }
+
+    public void setVoucherTarjeta(Boolean voucherTarjeta) {
+        this.voucherTarjeta = voucherTarjeta;
+    }
+
+    public BigDecimal getMontoTransferencia() {
+        return montoTransferencia;
+    }
+
+    public void setMontoTransferencia(BigDecimal montoTransferencia) {
+        this.montoTransferencia = montoTransferencia;
+    }
+
+    public String getReferenciaTransferencia() {
+        return referenciaTransferencia;
+    }
+
+    public void setReferenciaTransferencia(String referenciaTransferencia) {
+        this.referenciaTransferencia = referenciaTransferencia;
+    }
+
+    public Boolean getVoucherTransferencia() {
+        return voucherTransferencia;
+    }
+
+    public void setVoucherTransferencia(Boolean voucherTransferencia) {
+        this.voucherTransferencia = voucherTransferencia;
+    }
+
+    public BigDecimal getMontoCheque() {
+        return montoCheque;
+    }
+
+    public void setMontoCheque(BigDecimal montoCheque) {
+        this.montoCheque = montoCheque;
+    }
+
+    public String getReferenciaCheque() {
+        return referenciaCheque;
+    }
+
+    public void setReferenciaCheque(String referenciaCheque) {
+        this.referenciaCheque = referenciaCheque;
+    }
+
+    public BigDecimal getMontoCredito() {
+        return montoCredito;
+    }
+
+    public void setMontoCredito(BigDecimal montoCredito) {
+        this.montoCredito = montoCredito;
+    }
 }

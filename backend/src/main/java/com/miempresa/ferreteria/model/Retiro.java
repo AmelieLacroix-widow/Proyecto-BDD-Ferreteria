@@ -6,77 +6,78 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Entity
-@Table(name = "retiro")
+@Table(name = "RETIRO")
 public class Retiro {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_retiro")
-    private Integer id_retiro; // PK [cite: 10, 11]
+    private Integer idRetiro;
 
-    @Column(name = "fecha_retiro")
-    private LocalDate fecha_retiro; // 
+    @Column(name = "fecha_retiro", nullable = false)
+    private LocalDate fechaRetiro;
 
-    @Column(name = "hora_retiro")
-    private LocalTime hora_retiro; // 
+    @Column(name = "hora_retiro", nullable = false)
+    private LocalTime horaRetiro;
 
-    @Column(name = "monto_retiro", precision = 10, scale = 2)
-    private BigDecimal monto_retiro; // 
+    @Column(name = "monto_retiro", precision = 10, scale = 2, nullable = false)
+    private BigDecimal montoRetiro;
 
     @Column(name = "descripcion_retiro", length = 300)
-    private String descripcion_retiro; // 
+    private String descripcionRetiro;
 
-    @Column(name = "id_usuario")
-    private Integer id_usuario; // FK 
+    // Relación ManyToOne con Usuario (antes era solo un Integer)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario", nullable = false)
+    private Usuario usuario;
 
     // --- Getters y Setters ---
 
-    public Integer getId_retiro() {
-        return id_retiro;
+    public Integer getIdRetiro() {
+        return idRetiro;
     }
 
-    public void setId_retiro(Integer id_retiro) {
-        this.id_retiro = id_retiro;
+    public void setIdRetiro(Integer idRetiro) {
+        this.idRetiro = idRetiro;
     }
 
-    public LocalDate getFecha_retiro() {
-        return fecha_retiro;
+    public LocalDate getFechaRetiro() {
+        return fechaRetiro;
     }
 
-    public void setFecha_retiro(LocalDate fecha_retiro) {
-        this.fecha_retiro = fecha_retiro;
+    public void setFechaRetiro(LocalDate fechaRetiro) {
+        this.fechaRetiro = fechaRetiro;
     }
 
-    public LocalTime getHora_retiro() {
-        return hora_retiro;
+    public LocalTime getHoraRetiro() {
+        return horaRetiro;
     }
 
-    public void setHora_retiro(LocalTime hora_retiro) {
-        this.hora_retiro = hora_retiro;
+    public void setHoraRetiro(LocalTime horaRetiro) {
+        this.horaRetiro = horaRetiro;
     }
 
-    public BigDecimal getMonto_retiro() {
-        return monto_retiro;
+    public BigDecimal getMontoRetiro() {
+        return montoRetiro;
     }
 
-    public void setMonto_retiro(BigDecimal monto_retiro) {
-        this.monto_retiro = monto_retiro;
+    public void setMontoRetiro(BigDecimal montoRetiro) {
+        this.montoRetiro = montoRetiro;
     }
 
-    public String getDescripcion_retiro() {
-        return descripcion_retiro;
+    public String getDescripcionRetiro() {
+        return descripcionRetiro;
     }
 
-    public void setDescripcion_retiro(String descripcion_retiro) {
-        this.descripcion_retiro = descripcion_retiro;
+    public void setDescripcionRetiro(String descripcionRetiro) {
+        this.descripcionRetiro = descripcionRetiro;
     }
 
-    public Integer getId_usuario() {
-        return id_usuario;
+    public Usuario getUsuario() {
+        return usuario;
     }
 
-    public void setId_usuario(Integer id_usuario) {
-        this.id_usuario = id_usuario;
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 }
-
