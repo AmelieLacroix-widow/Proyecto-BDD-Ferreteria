@@ -40,4 +40,40 @@ public class ClienteService {
     public Cliente guardar(Cliente c) {
         return repo.save(c);
     }
+
+    // 🔥 ACTUALIZAR
+    public Cliente actualizar(Integer id, Cliente cliente) {
+
+        Cliente existente = repo.findById(id).orElse(null);
+
+        if (existente == null) {
+            return null;
+        }
+
+        existente.setNombres(cliente.getNombres());
+        existente.setApellidoPaterno(cliente.getApellidoPaterno());
+        existente.setApellidoMaterno(cliente.getApellidoMaterno());
+        existente.setTelefono(cliente.getTelefono());
+        existente.setCorreo(cliente.getCorreo());
+        existente.setDomicilio(cliente.getDomicilio());
+        existente.setColonia(cliente.getColonia());
+        existente.setMunicipioEstado(cliente.getMunicipioEstado());
+        existente.setCodigoPostal(cliente.getCodigoPostal());
+        existente.setNotas(cliente.getNotas());
+        existente.setTieneCredito(cliente.getTieneCredito());
+        existente.setSaldoCredito(cliente.getSaldoCredito());
+        existente.setLimiteCredito(cliente.getLimiteCredito());
+
+        return repo.save(existente);
+    }
+
+    // 🔥 ELIMINAR
+    public void eliminar(Integer id) {
+        repo.deleteById(id);
+    }
+
+    // 🔥 BUSCAR POR ID
+    public Cliente buscarPorId(Integer id) {
+        return repo.findById(id).orElse(null);
+    }
 }
