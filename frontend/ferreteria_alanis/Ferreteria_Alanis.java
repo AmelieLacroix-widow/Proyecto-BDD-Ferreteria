@@ -16,6 +16,6 @@ public class Ferreteria_Alanis {
                     .log(java.util.logging.Level.SEVERE, null, ex);
         }
 
-        java.awt.EventQueue.invokeLater(() -> new MenúPrincipal().setVisible(true));
+        java.awt.EventQueue.invokeLater(() -> new MenuPrincipal().setVisible(true));
     }
 }
