@@ -3,7 +3,7 @@ package com.mycompany.ferreteria_alanis;
 public class MenuPrincipal extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger =
-            java.util.logging.Logger.getLogger(MenúPrincipal.class.getName());
+            java.util.logging.Logger.getLogger(MenuPrincipal.class.getName());
 
     public MenuPrincipal() {
         initComponents();
@@ -193,7 +193,7 @@ public class MenuPrincipal extends javax.swing.JFrame {
         } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
             logger.log(java.util.logging.Level.SEVERE, null, ex);
         }
-        java.awt.EventQueue.invokeLater(() -> new MenúPrincipal().setVisible(true));
+        java.awt.EventQueue.invokeLater(() -> new MenuPrincipal().setVisible(true));
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
