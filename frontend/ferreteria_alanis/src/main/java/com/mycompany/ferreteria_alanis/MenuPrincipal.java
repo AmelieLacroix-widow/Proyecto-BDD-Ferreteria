@@ -5,7 +5,7 @@ public class MenuPrincipal extends javax.swing.JFrame {
     private static final java.util.logging.Logger logger =
             java.util.logging.Logger.getLogger(MenúPrincipal.class.getName());
 
-    public MenúPrincipal() {
+    public MenuPrincipal() {
         initComponents();
         setLocationRelativeTo(null);
     }
