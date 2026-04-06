@@ -1,6 +1,6 @@
 package com.mycompany.ferreteria_alanis;
 
-public class MenúPrincipal extends javax.swing.JFrame {
+public class MenuPrincipal extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger =
             java.util.logging.Logger.getLogger(MenúPrincipal.class.getName());
