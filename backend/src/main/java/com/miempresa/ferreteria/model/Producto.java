@@ -2,6 +2,7 @@ package com.miempresa.ferreteria.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "PRODUCTO")
@@ -52,11 +53,13 @@ public class Producto {
     // Relación ManyToOne con Departamento (antes era solo un Integer)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_departamento")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Departamento departamento;
 
     // Relación ManyToOne con Proveedor (antes era solo un Integer)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_proveedor")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Proveedor proveedor;
 
     // --- Getters y Setters ---
