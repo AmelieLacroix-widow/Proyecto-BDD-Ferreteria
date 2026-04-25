@@ -1,8 +1,13 @@
 package com.miempresa.ferreteria.service;
 
 import com.miempresa.ferreteria.model.Producto;
-import com.miempresa.ferreteria.repository.DetalleTicketRepository;
+import com.miempresa.ferreteria.model.Departamento;
+import com.miempresa.ferreteria.model.Proveedor;
 import com.miempresa.ferreteria.repository.ProductoRepository;
+import com.miempresa.ferreteria.repository.DetalleTicketRepository;
+import com.miempresa.ferreteria.repository.DepartamentoRepository;
+import com.miempresa.ferreteria.repository.ProveedorRepository;
+
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -14,10 +19,17 @@ public class ProductoService {
 
     private final ProductoRepository repo;
     private final DetalleTicketRepository detalleRepo;
+    private final DepartamentoRepository departamentoRepo;
+    private final ProveedorRepository proveedorRepo;
 
-    public ProductoService(ProductoRepository repo, DetalleTicketRepository detalleRepo) {
+    public ProductoService(ProductoRepository repo,
+                           DetalleTicketRepository detalleRepo,
+                           DepartamentoRepository departamentoRepo,
+                           ProveedorRepository proveedorRepo) {
         this.repo = repo;
         this.detalleRepo = detalleRepo;
+        this.departamentoRepo = departamentoRepo;
+        this.proveedorRepo = proveedorRepo;
     }
 
     public List<Producto> todos() {
@@ -56,7 +68,29 @@ public class ProductoService {
         return repo.calcularCantidadTotalInventario();
     }
 
+    // 🔥 MÉTODO CORREGIDO
     public Producto guardar(Producto p) {
+
+        // 🔹 Validar y cargar Departamento desde BD
+        if (p.getDepartamento() != null) {
+            Integer idDep = p.getDepartamento().getIdDepartamento();
+
+            Departamento dep = departamentoRepo.findById(idDep)
+                    .orElseThrow(() -> new RuntimeException("Departamento no encontrado con id: " + idDep));
+
+            p.setDepartamento(dep);
+        }
+
+        // 🔹 Validar y cargar Proveedor desde BD
+        if (p.getProveedor() != null) {
+            Integer idProv = p.getProveedor().getIdProveedor();
+
+            Proveedor prov = proveedorRepo.findById(idProv)
+                    .orElseThrow(() -> new RuntimeException("Proveedor no encontrado con id: " + idProv));
+
+            p.setProveedor(prov);
+        }
+
         return repo.save(p);
     }
 
@@ -64,14 +98,6 @@ public class ProductoService {
         return repo.actualizarExistencia(codigoBarras, existencia);
     }
 
-    /**
-     * Elimina un producto solo si no tiene renglones en ningún ticket.
-     * La FK en DETALLE_TICKET es ON DELETE RESTRICT, por lo que la BD
-     * rechazaría el DELETE. Esta validación previa devuelve un mensaje claro
-     * en lugar de dejar explotar una excepción de integridad referencial.
-     *
-     * @return true si se eliminó, false si tiene ventas registradas.
-     */
     public boolean eliminar(String codigoBarras) {
         if (detalleRepo.existsByCodigoBarras(codigoBarras)) {
             return false;
