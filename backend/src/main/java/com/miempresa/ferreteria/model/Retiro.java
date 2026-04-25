@@ -9,6 +9,9 @@ import java.time.LocalTime;
 @Table(name = "RETIRO")
 public class Retiro {
 
+    public Retiro() {
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_retiro")

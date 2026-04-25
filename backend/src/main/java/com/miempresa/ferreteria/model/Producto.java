@@ -7,6 +7,9 @@ import java.math.BigDecimal;
 @Table(name = "PRODUCTO")
 public class Producto {
 
+    public Producto() {
+    }
+
     @Id
     @Column(name = "codigo_barras", length = 50)
     private String codigoBarras;

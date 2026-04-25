@@ -7,6 +7,9 @@ import jakarta.persistence.*;
 @IdClass(UsuarioModuloId.class)
 public class UsuarioModulo {
 
+    public UsuarioModulo() {
+    }
+
     // El nombre del atributo DEBE coincidir con UsuarioModuloId.idUsuario
     @Id
     @Column(name = "id_usuario")

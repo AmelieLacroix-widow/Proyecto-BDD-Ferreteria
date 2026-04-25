@@ -8,6 +8,9 @@ import java.time.LocalDate;
 @Table(name = "CORTE")
 public class Corte {
 
+    public Corte() {
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_corte")

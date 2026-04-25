@@ -8,6 +8,9 @@ import java.math.BigDecimal;
 @IdClass(DetalleTicketId.class)
 public class DetalleTicket {
 
+    public DetalleTicket() {
+    }
+
     // Nombre del atributo DEBE coincidir con DetalleTicketId.folioTicket
     @Id
     @Column(name = "folio_ticket")
