@@ -229,6 +229,82 @@ public class PRODUCTOS extends javax.swing.JFrame {
     }
     }
 
+// -------------------------------------------------------------------------
+// jButton12 → "Eliminar"
+// -------------------------------------------------------------------------
+private void eliminarProducto() {
+
+    int fila = jTable1.getSelectedRow();
+
+    if (fila == -1) {
+        JOptionPane.showMessageDialog(
+                this,
+                "Selecciona un producto de la tabla para eliminar.",
+                "Sin selección",
+                JOptionPane.WARNING_MESSAGE
+        );
+        return;
+    }
+
+    String codigo = (String) tableModel.getValueAt(fila, 0);
+    String descripcion = (String) tableModel.getValueAt(fila, 1);
+
+    int confirmacion = JOptionPane.showConfirmDialog(
+            this,
+            "¿Eliminar el producto: " + descripcion + "?",
+            "Confirmar eliminación",
+            JOptionPane.YES_NO_OPTION
+    );
+
+    if (confirmacion != JOptionPane.YES_OPTION) return;
+
+    new SwingWorker<Integer, Void>() {
+
+        @Override
+        protected Integer doInBackground() throws Exception {
+            return api.delete("/productos/" +
+                    URLEncoder.encode(codigo, StandardCharsets.UTF_8));
+        }
+
+        @Override
+        protected void done() {
+            try {
+                int status = get();
+
+                if (status == 204) {
+                    JOptionPane.showMessageDialog(
+                            PRODUCTOS.this,
+                            "Producto eliminado.",
+                            "Éxito",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
+                    jLabel3.setText("$ 0.00");
+                    cargarTodosLosProductos();
+
+                } else if (status == 409) {
+                    JOptionPane.showMessageDialog(
+                            PRODUCTOS.this,
+                            "No se puede eliminar: el producto tiene ventas registradas.",
+                            "Conflicto",
+                            JOptionPane.WARNING_MESSAGE
+                    );
+
+                } else if (status == 404) {
+                    JOptionPane.showMessageDialog(
+                            PRODUCTOS.this,
+                            "El producto no existe en el sistema.",
+                            "No encontrado",
+                            JOptionPane.WARNING_MESSAGE
+                    );
+                }
+
+            } catch (Exception ex) {
+                mostrarError("Error al eliminar producto", ex);
+            }
+        }
+    }.execute();
+}
+
     // -------------------------------------------------------------------------
     // Utilidad de error
     // -------------------------------------------------------------------------
