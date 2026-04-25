@@ -162,128 +162,71 @@ public class PRODUCTOS extends javax.swing.JFrame {
 
     private void modificarProducto() {
         int fila = jTable1.getSelectedRow();
-        if (fila == -1) {
-            JOptionPane.showMessageDialog(this,
-                    "Selecciona un producto de la tabla para modificar.",
-                    "Sin selección", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        String codigo = (String) tableModel.getValueAt(fila, 0);
-        String descripcionActual = (String) tableModel.getValueAt(fila, 1);
-        Object precioActual = tableModel.getValueAt(fila, 2);
-
-        // Diálogo simple para capturar nuevos valores
-        JTextField campoDesc = new JTextField(descripcionActual, 25);
-        JTextField campoPrecio = new JTextField(precioActual != null ? precioActual.toString() : "", 10);
-
-        JPanel panel = new JPanel(new java.awt.GridLayout(4, 1, 5, 5));
-        panel.add(new JLabel("Descripción:"));
-        panel.add(campoDesc);
-        panel.add(new JLabel("Precio de Venta:"));
-        panel.add(campoPrecio);
-
-        int resultado = JOptionPane.showConfirmDialog(this, panel,
-                "Modificar Producto: " + codigo,
-                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-        if (resultado != JOptionPane.OK_OPTION) return;
-
-        try {
-            ProductoDTO p = new ProductoDTO();
-            p.setCodigoBarras(codigo);
-            p.setDescripcion(campoDesc.getText().trim());
-            p.setPrecioVentaLista(new BigDecimal(campoPrecio.getText().trim()));
-            p.setPrecioCosto(BigDecimal.ZERO);
-            p.setPorcentajeGanancia(BigDecimal.ZERO);
-            p.setExistencia((BigDecimal) tableModel.getValueAt(fila, 5));
-            p.setUnidad("Pza");
-            p.setUsaInventario(true);
-
-            String jsonBody = mapper.writeValueAsString(p);
-
-            new SwingWorker<String, Void>() {
-                @Override
-                protected String doInBackground() throws Exception {
-                    return api.put("/productos/" +
-                            URLEncoder.encode(codigo, StandardCharsets.UTF_8), jsonBody);
-                }
-
-                @Override
-                protected void done() {
-                    try {
-                        get();
-                        JOptionPane.showMessageDialog(PRODUCTOS.this,
-                                "Producto modificado correctamente.",
-                                "Éxito", JOptionPane.INFORMATION_MESSAGE);
-                        cargarTodosLosProductos();
-                    } catch (Exception ex) {
-                        mostrarError("Error al modificar producto", ex);
-                    }
-                }
-            }.execute();
-
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this,
-                    "El precio debe ser un número válido.",
-                    "Error de formato", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            mostrarError("Error inesperado", e);
-        }
+    if (fila == -1) {
+        JOptionPane.showMessageDialog(this,
+                "Selecciona un producto de la tabla para modificar.",
+                "Sin selección", JOptionPane.WARNING_MESSAGE);
+        return;
     }
 
-    // -------------------------------------------------------------------------
-    // jButton12 → "Eliminar"
-    // -------------------------------------------------------------------------
+    String codigo = (String) tableModel.getValueAt(fila, 0);
+    String descripcionActual = (String) tableModel.getValueAt(fila, 1);
+    Object precioActual = tableModel.getValueAt(fila, 2);
 
-    private void eliminarProducto() {
-        int fila = jTable1.getSelectedRow();
-        if (fila == -1) {
-            JOptionPane.showMessageDialog(this,
-                    "Selecciona un producto de la tabla para eliminar.",
-                    "Sin selección", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
+    JTextField campoDesc = new JTextField(descripcionActual, 25);
+    JTextField campoPrecio = new JTextField(precioActual != null ? precioActual.toString() : "", 10);
 
-        String codigo = (String) tableModel.getValueAt(fila, 0);
-        String descripcion = (String) tableModel.getValueAt(fila, 1);
+    JPanel panel = new JPanel(new java.awt.GridLayout(4, 1, 5, 5));
+    panel.add(new JLabel("Descripción:"));
+    panel.add(campoDesc);
+    panel.add(new JLabel("Precio de Venta:"));
+    panel.add(campoPrecio);
 
-        int confirmacion = JOptionPane.showConfirmDialog(this,
-                "¿Eliminar el producto: " + descripcion + "?",
-                "Confirmar eliminación", JOptionPane.YES_NO_OPTION);
+    int resultado = JOptionPane.showConfirmDialog(this, panel,
+            "Modificar Producto: " + codigo,
+            JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
-        if (confirmacion != JOptionPane.YES_OPTION) return;
+    if (resultado != JOptionPane.OK_OPTION) return;
 
-        new SwingWorker<Integer, Void>() {
+    try {
+        new SwingWorker<String, Void>() {
             @Override
-            protected Integer doInBackground() throws Exception {
-                return api.delete("/productos/" +
+            protected String doInBackground() throws Exception {
+
+                // 🔥 1. Obtener producto completo desde backend
+                String json = api.get("/productos/" +
                         URLEncoder.encode(codigo, StandardCharsets.UTF_8));
+
+                ProductoDTO p = mapper.readValue(json, ProductoDTO.class);
+
+                // 🔥 2. Modificar solo lo necesario
+                p.setDescripcion(campoDesc.getText().trim());
+                p.setPrecioVentaLista(new BigDecimal(campoPrecio.getText().trim()));
+
+                // 🔥 3. Enviar objeto completo
+                String jsonBody = mapper.writeValueAsString(p);
+
+                return api.put("/productos/" +
+                        URLEncoder.encode(codigo, StandardCharsets.UTF_8), jsonBody);
             }
 
             @Override
             protected void done() {
                 try {
-                    int status = get();
-                    if (status == 204) {
-                        JOptionPane.showMessageDialog(PRODUCTOS.this,
-                                "Producto eliminado.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-                        jLabel3.setText("$ 0.00");
-                        cargarTodosLosProductos();
-                    } else if (status == 409) {
-                        JOptionPane.showMessageDialog(PRODUCTOS.this,
-                                "No se puede eliminar: el producto tiene ventas registradas.",
-                                "Conflicto", JOptionPane.WARNING_MESSAGE);
-                    } else if (status == 404) {
-                        JOptionPane.showMessageDialog(PRODUCTOS.this,
-                                "El producto no existe en el sistema.",
-                                "No encontrado", JOptionPane.WARNING_MESSAGE);
-                    }
+                    get();
+                    JOptionPane.showMessageDialog(PRODUCTOS.this,
+                            "Producto modificado correctamente.",
+                            "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                    cargarTodosLosProductos();
                 } catch (Exception ex) {
-                    mostrarError("Error al eliminar producto", ex);
+                    mostrarError("Error al modificar producto", ex);
                 }
             }
         }.execute();
+
+    } catch (Exception e) {
+        mostrarError("Error inesperado", e);
+    }
     }
 
     // -------------------------------------------------------------------------
