@@ -45,4 +45,21 @@ public class UsuarioService {
     public void eliminar(Integer id) {
         repo.deleteById(id);
     }
+
+    public Optional<Usuario> autenticar(String nombreUsuario, String passwordPlano) {
+
+    Optional<Usuario> userOpt = repo.findByNombreUsuario(nombreUsuario);
+
+    if (userOpt.isPresent()) {
+        Usuario user = userOpt.get();
+
+        // comparación directa (texto plano)
+        if (user.getContrasenaHash().equals(passwordPlano)) {
+            return Optional.of(user);
+        }
+    }
+
+    return Optional.empty();
+}
+
 }
