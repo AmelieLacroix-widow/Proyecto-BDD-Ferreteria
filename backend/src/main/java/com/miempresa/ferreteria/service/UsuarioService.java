@@ -4,6 +4,7 @@ import com.miempresa.ferreteria.model.Usuario;
 import com.miempresa.ferreteria.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
+
 import java.util.List;
 import java.util.Optional;
 
@@ -12,8 +13,13 @@ public class UsuarioService {
 
     private final UsuarioRepository repo;
 
-    public UsuarioService(UsuarioRepository repo) {
+    private final PasswordService passwordService;
+
+
+    public UsuarioService(UsuarioRepository repo, PasswordService passwordService) {
         this.repo = repo;
+
+        this.passwordService = passwordService;
     }
 
     public List<Usuario> todos() {
@@ -48,18 +54,17 @@ public class UsuarioService {
 
     public Optional<Usuario> autenticar(String nombreUsuario, String passwordPlano) {
 
-    Optional<Usuario> userOpt = repo.findByNombreUsuario(nombreUsuario);
+        Optional<Usuario> userOpt = repo.findByNombreUsuario(nombreUsuario);
 
-    if (userOpt.isPresent()) {
-        Usuario user = userOpt.get();
+        if (userOpt.isPresent()) {
+            Usuario user = userOpt.get();
 
-        // comparación directa (texto plano)
-        if (user.getContrasenaHash().equals(passwordPlano)) {
-            return Optional.of(user);
+            if (passwordService.verificar(passwordPlano, user.getContrasenaHash())) {
+                return Optional.of(user);
+            }
         }
-    }
 
-    return Optional.empty();
-}
+        return Optional.empty();
+    }
 
 }
