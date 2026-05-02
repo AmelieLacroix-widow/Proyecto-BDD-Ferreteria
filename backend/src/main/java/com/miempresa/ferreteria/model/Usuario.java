@@ -20,6 +20,9 @@ public class Usuario {
     @Column(name = "contrasena_hash", length = 255, nullable = false)
     private String contrasenaHash;
 
+    @Column(name = "rol")
+    private String rol;
+
     // --- Getters y Setters ---
 
     public Integer getIdUsuario() {
@@ -45,4 +48,14 @@ public class Usuario {
     public void setContrasenaHash(String contrasenaHash) {
         this.contrasenaHash = contrasenaHash;
     }
+
+    // 🔥 GET / SET DEL ROL
+    public String getRol() {
+        return rol;
+    }
+
+    public void setRol(String rol) {
+        this.rol = rol;
+    }
+
 }
