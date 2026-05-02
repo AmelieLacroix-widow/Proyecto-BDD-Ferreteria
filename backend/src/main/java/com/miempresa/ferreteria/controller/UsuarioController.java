@@ -75,4 +75,21 @@ public class UsuarioController {
                     .body("No se puede eliminar: el usuario tiene transacciones registradas.");
         }
     }
+
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody Usuario usuario) {
+
+    var userOpt = service.autenticar(
+            usuario.getNombreUsuario(),
+            usuario.getContrasenaHash()
+    );
+
+    if (userOpt.isPresent()) {
+        return ResponseEntity.ok(userOpt.get()); // devuelve usuario con rol
+    } else {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body("Credenciales incorrectas");
+    }
+}
 }

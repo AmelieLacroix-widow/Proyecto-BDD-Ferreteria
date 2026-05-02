@@ -5,9 +5,38 @@ public class MenuPrincipal extends javax.swing.JFrame {
     private static final java.util.logging.Logger logger =
             java.util.logging.Logger.getLogger(MenuPrincipal.class.getName());
 
-    public MenuPrincipal() {
+    private String rol;
+
+    public MenuPrincipal(String rol) {
+        this.rol = rol;
+
         initComponents();
         setLocationRelativeTo(null);
+
+        acomodarMenu();
+    }
+
+    private void acomodarMenu() {
+
+        // Botones que sí vas a usar
+        jButton1.setText("VENTAS");
+        jButton4.setText("PRODUCTOS");
+        jButton5.setText("INVENTARIO");
+        jButton8.setText("CORTE");
+        jButton9.setText("USUARIO");
+
+        // Botones que ya no quieres mostrar nunca
+        jButton2.setVisible(false); // CRÉDITOS
+        jButton3.setVisible(false); // CLIENTES
+        jButton6.setVisible(false); // PROVEEDORES
+        jButton7.setVisible(false); // COMPRAS
+
+        // Si no es admin, solo deja dos opciones
+        if (!"ADMIN".equals(rol)) {
+            jButton4.setVisible(false); // PRODUCTOS
+            jButton8.setVisible(false); // CORTE
+            jButton9.setVisible(false); // USUARIO
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -182,19 +211,7 @@ public class MenuPrincipal extends javax.swing.JFrame {
         // TODO: abrir pantalla de Compras
     }//GEN-LAST:event_jButton7ActionPerformed
 
-    public static void main(String args[]) {
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        java.awt.EventQueue.invokeLater(() -> new MenuPrincipal().setVisible(true));
-    }
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private java.awt.Button button1;

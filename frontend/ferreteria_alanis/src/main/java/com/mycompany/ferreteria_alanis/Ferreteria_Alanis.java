@@ -3,7 +3,8 @@ package com.mycompany.ferreteria_alanis;
 public class Ferreteria_Alanis {
 
     public static void main(String[] args) {
-        // Aplica el look and feel Nimbus antes de mostrar cualquier ventana
+
+        // 🔹 Aplicar tema Nimbus (opcional pero recomendado)
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
@@ -16,6 +17,9 @@ public class Ferreteria_Alanis {
                     .log(java.util.logging.Level.SEVERE, null, ex);
         }
 
-        java.awt.EventQueue.invokeLater(() -> new MenuPrincipal().setVisible(true));
+        // 🔥 INICIO DE LA APP → abrir LOGIN
+        java.awt.EventQueue.invokeLater(() -> {
+            new Login().setVisible(true);
+        });
     }
 }

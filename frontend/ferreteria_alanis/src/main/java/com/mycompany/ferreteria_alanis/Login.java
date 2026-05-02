@@ -1,3 +1,11 @@
+package com.mycompany.ferreteria_alanis;
+
+
+import java.net.HttpURLConnection;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -19,7 +27,6 @@ import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
 
 public class Login extends JFrame {
 
@@ -119,15 +126,75 @@ public class Login extends JFrame {
 
         // Evento
         boton.addActionListener(e -> {
-            String user = usuario.getText().trim();
-            String p1 = new String(pass.getPassword());
-            // Aquí iría la lógica de autenticación, por ahora solo es un ejemplo
-            if (user.equals("admin") && p1.equals("1234")) {
-                JOptionPane.showMessageDialog(this, "¡Bienvenido, " + user + "!");
-            } else {
-                error.setVisible(true);
+    String user = usuario.getText().trim();
+    String p1 = new String(pass.getPassword());
+
+    try {
+        var url = java.net.URI.create("http://localhost:8080/usuarios/login").toURL();
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setDoOutput(true);
+
+        // JSON que mandas al backend
+        String jsonInput = "{"
+                + "\"nombreUsuario\":\"" + user + "\","
+                + "\"contrasenaHash\":\"" + p1 + "\""
+                + "}";
+
+        // enviar datos
+        OutputStream os = conn.getOutputStream();
+        os.write(jsonInput.getBytes());
+        os.flush();
+        os.close();
+
+        int responseCode = conn.getResponseCode();
+
+        if (responseCode == 200) {
+
+            BufferedReader br = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream())
+            );
+
+            StringBuilder response = new StringBuilder();
+            String line;
+
+            while ((line = br.readLine()) != null) {
+                response.append(line);
             }
-        });
+
+            br.close();
+
+            String respuesta = response.toString();
+
+            System.out.println("Respuesta: " + respuesta);
+
+            // 🔥 detección simple de rol
+            if (respuesta.contains("ADMIN")) {
+                JOptionPane.showMessageDialog(this, "Bienvenido ADMIN");
+
+                // 👉 aquí abres tu menú admin
+                // new MenuAdmin().setVisible(true);
+
+            } else {
+                JOptionPane.showMessageDialog(this, "Bienvenido USUARIO");
+
+                // 👉 menú limitado
+                // new MenuEmpleado().setVisible(true);
+            }
+
+            this.dispose();
+
+        } else {
+            error.setVisible(true);
+        }
+
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Error al conectar con el servidor");
+    }
+});
 
 
         char echoPass = pass.getEchoChar();
@@ -147,9 +214,5 @@ public class Login extends JFrame {
 
     }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            new Login().setVisible(true);
-        });
-    }
+    
 }
