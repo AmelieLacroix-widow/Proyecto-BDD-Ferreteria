@@ -37,7 +37,7 @@ public class MenuPrincipal extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setBackground(new java.awt.Color(255, 255, 255));
 
-        jLabel3.setIcon(new javax.swing.ImageIcon("/Users/alejandro/Downloads/WhatsApp Image 2026-03-31 at 21.33.37.jpeg")); // NOI18N
+        jLabel3.setIcon(new javax.swing.ImageIcon("logo.png")); // NOI18N
         jLabel3.setText(" ");
 
         jLabel2.setBackground(new java.awt.Color(0, 0, 0));
