@@ -16,35 +16,6 @@ public class MenuPrincipal extends javax.swing.JFrame {
         configurarMenu();
     }
 
-    private void configurarMenu() {
-
-    // Texto de botones (SIEMPRE)
-    jButton1.setText("VENTAS");
-    jButton4.setText("PRODUCTOS");
-    jButton5.setText("INVENTARIO");
-    jButton8.setText("CORTE");
-    jButton9.setText("USUARIO");
-
-    // Primero ocultas todo lo no usado
-    jButton2.setVisible(false); // CRÉDITOS
-    jButton3.setVisible(false); // CLIENTES
-    jButton6.setVisible(false); // PROVEEDORES
-    jButton7.setVisible(false); // COMPRAS
-
-    // Ahora defines por rol lo que SÍ se ve
-    if ("ADMIN".equalsIgnoreCase(rol)) {
-
-        jButton4.setVisible(true);  // PRODUCTOS
-        jButton8.setVisible(true);  // CORTE
-        jButton9.setVisible(true);  // USUARIO
-
-    } else {
-
-        jButton4.setVisible(true);  // PRODUCTOS (si empleados lo ven)
-        jButton8.setVisible(false); // CORTE
-        jButton9.setVisible(false); // USUARIO
-    }
-}
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -196,6 +167,38 @@ public class MenuPrincipal extends javax.swing.JFrame {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+
+    private void configurarMenu() {
+
+    // Texto de botones (SIEMPRE)
+    jButton1.setText("VENTAS");
+    jButton4.setText("PRODUCTOS");
+    jButton5.setText("INVENTARIO");
+    jButton8.setText("CORTE");
+    jButton9.setText("USUARIO");
+
+    // Primero ocultas todo lo no usado
+    jButton2.setVisible(false); // CRÉDITOS
+    jButton3.setVisible(false); // CLIENTES
+    jButton6.setVisible(false); // PROVEEDORES
+    jButton7.setVisible(false); // COMPRAS
+
+    // Ahora defines por rol lo que SÍ se ve
+    if ("ADMIN".equalsIgnoreCase(rol)) {
+
+        jButton4.setVisible(true);  // PRODUCTOS
+        jButton8.setVisible(true);  // CORTE
+        jButton9.setVisible(true);  // USUARIO
+
+    } else {
+
+        jButton4.setVisible(true);  // PRODUCTOS (si empleados lo ven)
+        jButton8.setVisible(false); // CORTE
+        jButton9.setVisible(false); // USUARIO
+    }
+}
+
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         // TODO: abrir pantalla de Ventas
