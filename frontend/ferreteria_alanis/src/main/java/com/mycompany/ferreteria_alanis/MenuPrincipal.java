@@ -171,27 +171,34 @@ public class MenuPrincipal extends javax.swing.JFrame {
 
     private void configurarMenu() {
 
-    // 1. Botones que SIEMPRE se ven para TODOS (Ventas e Inventario)
-    jButton1.setVisible(true); // VENTAS
-    jButton5.setVisible(true); // INVENTARIO
+    // 1. FORZAR TEXTOS (Esto es lo que faltaba para que no diga Reporte/Configuración)
+    jButton8.setText("CORTE");
+    jButton9.setText("USUARIO");
 
-    // 2. Botones que SOLO el Admin ve
+    // 2. Ocultar por defecto lo que no se usa (Créditos, Clientes, Proveedores, Compras)
+    jButton2.setVisible(false); 
+    jButton3.setVisible(false); 
+    jButton6.setVisible(false); 
+    jButton7.setVisible(false); 
+
+    // 3. Lógica por ROL
     if ("ADMIN".equalsIgnoreCase(rol)) {
+        // El ADMIN ve sus herramientas de gestión
+        jButton1.setVisible(true); // VENTAS
         jButton4.setVisible(true); // PRODUCTOS
-        jButton8.setVisible(true); // CORTE
-        jButton9.setVisible(true); // USUARIO
+        jButton5.setVisible(true); // INVENTARIO
+        jButton8.setVisible(true); // CORTE (Ahora con el nombre correcto)
+        jButton9.setVisible(true); // USUARIO (Ahora con el nombre correcto)
     } else {
-        // Para el empleado ocultamos el resto
-        jButton4.setVisible(false);
-        jButton8.setVisible(false);
-        jButton9.setVisible(false);
+        // EL EMPLEADO solo ve lo básico
+        jButton1.setVisible(true); // VENTAS
+        jButton5.setVisible(true); // INVENTARIO
+        
+        // Ocultamos el resto para el empleado
+        jButton4.setVisible(false); 
+        jButton8.setVisible(false); 
+        jButton9.setVisible(false); 
     }
-
-    // 3. Botones que no estás usando actualmente (Créditos, Clientes, etc.)
-    jButton2.setVisible(false);
-    jButton3.setVisible(false);
-    jButton6.setVisible(false);
-    jButton7.setVisible(false);
 }
 
 
