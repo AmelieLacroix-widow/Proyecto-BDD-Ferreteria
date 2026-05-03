@@ -13,10 +13,10 @@ import java.util.List;
 /**
  * Pantalla de Productos conectada al backend Spring Boot via ApiClient.
  */
-public class PRODUCTOS extends javax.swing.JFrame {
+public class VENTAS extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger =
-            java.util.logging.Logger.getLogger(PRODUCTOS.class.getName());
+            java.util.logging.Logger.getLogger(VENTAS.class.getName());
 
     private final ApiClient api = ApiClient.getInstance();
     private final ObjectMapper mapper = api.getMapper();
@@ -26,7 +26,7 @@ public class PRODUCTOS extends javax.swing.JFrame {
     // Rol del usuario que abrió esta ventana
     private final String rol;
 
-    public PRODUCTOS(String rol) {
+    public VENTAS(String rol) {
         this.rol = rol;
         initComponents();
         setLocationRelativeTo(null);
@@ -61,42 +61,46 @@ public class PRODUCTOS extends javax.swing.JFrame {
     }
 
     private void configurarPermisos() {
-  // Forzamos los nombres para que sean iguales al menú anterior
-    jButton8.setText("CORTE");
-    jButton9.setText("USUARIO");
-    jButton11.setText("DESCUENTO");
-
-    // Lógica para los botones del menú superior (Navegación)
-    if ("ADMIN".equalsIgnoreCase(rol)) {
-        // El admin ve su barra completa de herramientas
-        jButton1.setVisible(true); // VENTAS
-        jButton4.setVisible(true); // PRODUCTOS
-        jButton5.setVisible(true); // INVENTARIO
-        jButton8.setVisible(true); // CORTE
-        jButton9.setVisible(true); // USUARIO
-    } else {
-        // El empleado solo navega entre Ventas e Inventario
-        jButton1.setVisible(true); 
-        jButton5.setVisible(true);
+  // 1. NOMBRES DE NAVEGACIÓN SUPERIOR
+        jButton8.setText("CORTE");
+        jButton9.setText("USUARIO");
         
-        jButton4.setVisible(false);
-        jButton8.setVisible(false);
-        jButton9.setVisible(false);
+        // 2. NOMBRES DE ACCIÓN INFERIOR
+        jButton11.setText("DESCUENTO");
+        jButton12.setText("ELIMINAR");
+        jButton14.setText("COBRAR");
+
+        // 3. LÓGICA DE VISIBILIDAD (Igual para ambas pantallas)
+        if ("ADMIN".equalsIgnoreCase(rol)) {
+            // El Admin ve todo el menú superior para saltar entre módulos
+            jButton1.setVisible(true); // VENTAS (esta misma)
+            jButton4.setVisible(true); // PRODUCTOS
+            jButton5.setVisible(true); // INVENTARIO
+            jButton8.setVisible(true); // CORTE
+            jButton9.setVisible(true); // USUARIO
+        } else {
+            // El Empleado solo ve los módulos a los que tiene acceso
+            jButton1.setVisible(true); 
+            jButton5.setVisible(true);
+            
+            jButton4.setVisible(false);
+            jButton8.setVisible(false);
+            jButton9.setVisible(false);
+        }
+
+        // 4. ACCIONES DE VENTA (Habilitadas para ambos por tu petición anterior)
+        jButton11.setVisible(true); // DESCUENTO
+        jButton12.setVisible(true); // ELIMINAR
+        jButton14.setVisible(true); // COBRAR
+
+        // 5. LIMPIEZA DE BOTONES NO USADOS
+        jButton2.setVisible(false);
+        jButton3.setVisible(false);
+        jButton6.setVisible(false);
+        jButton7.setVisible(false);
+        jButton13.setVisible(false);
     }
 
-    // Lógica para los botones de acción (Abajo)
-    // Según tu petición, AMBOS pueden hacer estas acciones:
-    jButton11.setVisible(true); // DESCUENTO
-    jButton12.setVisible(true); // ELIMINAR
-    jButton14.setVisible(true); // COBRAR
-
-    // Siempre ocultamos los que no tienen función asignada todavía
-    jButton2.setVisible(false);
-    jButton3.setVisible(false);
-    jButton6.setVisible(false);
-    jButton7.setVisible(false);
-    jButton13.setVisible(false); // ASIGNAR CLIENTE
-}
 
     // -------------------------------------------------------------------------
     // Cargar todos los productos al abrir la pantalla
@@ -158,7 +162,7 @@ public class PRODUCTOS extends javax.swing.JFrame {
 
                     for (int i = 0; i < tableModel.getRowCount(); i++) {
                         if (codigo.equals(tableModel.getValueAt(i, 0))) {
-                            JOptionPane.showMessageDialog(PRODUCTOS.this,
+                            JOptionPane.showMessageDialog(VENTAS.this,
                                     "El producto ya está en la lista.",
                                     "Duplicado", JOptionPane.INFORMATION_MESSAGE);
                             return;
@@ -235,7 +239,7 @@ public class PRODUCTOS extends javax.swing.JFrame {
                 protected void done() {
                     try {
                         get();
-                        JOptionPane.showMessageDialog(PRODUCTOS.this,
+                        JOptionPane.showMessageDialog(VENTAS.this,
                                 "Producto modificado correctamente.",
                                 "Éxito", JOptionPane.INFORMATION_MESSAGE);
                         cargarTodosLosProductos();
@@ -292,7 +296,7 @@ public class PRODUCTOS extends javax.swing.JFrame {
 
                     if (status == 204) {
                         JOptionPane.showMessageDialog(
-                                PRODUCTOS.this,
+                                VENTAS.this,
                                 "Producto eliminado.",
                                 "Éxito",
                                 JOptionPane.INFORMATION_MESSAGE
@@ -302,7 +306,7 @@ public class PRODUCTOS extends javax.swing.JFrame {
 
                     } else if (status == 409) {
                         JOptionPane.showMessageDialog(
-                                PRODUCTOS.this,
+                                VENTAS.this,
                                 "No se puede eliminar: el producto tiene ventas registradas.",
                                 "Conflicto",
                                 JOptionPane.WARNING_MESSAGE
@@ -310,7 +314,7 @@ public class PRODUCTOS extends javax.swing.JFrame {
 
                     } else if (status == 404) {
                         JOptionPane.showMessageDialog(
-                                PRODUCTOS.this,
+                                VENTAS.this,
                                 "El producto no existe en el sistema.",
                                 "No encontrado",
                                 JOptionPane.WARNING_MESSAGE
