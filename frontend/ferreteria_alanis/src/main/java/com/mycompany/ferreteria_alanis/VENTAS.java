@@ -1,157 +1,403 @@
 package com.mycompany.ferreteria_alanis;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import java.awt.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * Pantalla de Productos conectada al backend Spring Boot via ApiClient.
+ * Pantalla del módulo de Ventas.
+ *
+ * Responsabilidades de esta pantalla:
+ *   - Agregar productos a un ticket mediante código de barras
+ *   - Modificar cantidad directamente en la tabla
+ *   - Aplicar descuento a un renglón seleccionado
+ *   - Eliminar un renglón del ticket (NO del catálogo)
+ *   - Gestionar hasta 3 tickets simultáneos
+ *   - Cobrar (pendiente de implementar el flujo de pago)
+ *
+ * Lo que NO hace esta pantalla (pertenece a PRODUCTOS):
+ *   - Crear / editar / eliminar productos del catálogo
+ *   - Cargar el catálogo completo
  */
-public class VENTAS extends javax.swing.JFrame {
+public class VENTAS extends JFrame {
 
-    private static final java.util.logging.Logger logger =
-            java.util.logging.Logger.getLogger(VENTAS.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(VENTAS.class.getName());
 
+    private static final Color COLOR_NARANJA    = new Color(255, 153, 0);
+    private static final Color COLOR_NEGRO      = Color.BLACK;
+    private static final Color COLOR_FONDO      = new Color(230, 230, 230);
+    private static final String[] COLUMNAS      = {
+        "Código de barras", "Descripción", "Precio", "Cant.", "Importe", "Existencia", "Descuento"
+    };
+    // Índices de columna
+    private static final int COL_CODIGO      = 0;
+    private static final int COL_DESC        = 1;
+    private static final int COL_PRECIO      = 2;
+    private static final int COL_CANT        = 3;
+    private static final int COL_IMPORTE     = 4;
+    private static final int COL_EXISTENCIA  = 5;
+    private static final int COL_DESCUENTO   = 6;
+
+    private final String rol;
+    private final String nombreUsuario;
     private final ApiClient api = ApiClient.getInstance();
     private final ObjectMapper mapper = api.getMapper();
 
-    private DefaultTableModel tableModel;
+    // Un modelo de tabla por cada ticket
+    private final List<DefaultTableModel> ticketModels = new ArrayList<>();
+    private JTabbedPane ticketPane;
+    private JLabel lblTotal;
+    private JTextField txtCodigo;
 
-    // Rol del usuario que abrió esta ventana
-    private final String rol;
+    // ─────────────────────────────────────────────────────────────────────────
 
-    public VENTAS(String rol) {
+    public VENTAS(String rol, String nombreUsuario) {
         this.rol = rol;
-        initComponents();
+        this.nombreUsuario = nombreUsuario;
+        initUI();
+        setTitle("Ferretería Alanís – Ventas");
+        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+        setSize(1100, 650);
         setLocationRelativeTo(null);
-        configurarPermisos();
-        configurarTabla();
-        cargarTodosLosProductos();
     }
 
-    // -------------------------------------------------------------------------
-    // Configuración de la tabla
-    // -------------------------------------------------------------------------
-    private void configurarTabla() {
-        tableModel = new DefaultTableModel(
-            new String[]{"Código de Barras", "Descripcion", "Precio", "Cantidad ", "Importe ", "Existencia"},
-            0
-        ) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        jTable1.setModel(tableModel);
+    // ─────────────────────────────────────────────────────────────────────────
+    // Construcción de la UI
+    // ─────────────────────────────────────────────────────────────────────────
 
-        jTable1.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting() && jTable1.getSelectedRow() != -1) {
-                int fila = jTable1.getSelectedRow();
-                Object precio = tableModel.getValueAt(fila, 2);
-                jLabel3.setText("$ " + (precio != null ? precio.toString() : "0.00"));
-                jTextField1.setText((String) tableModel.getValueAt(fila, 0));
-            }
-        });
+    private void initUI() {
+        setLayout(new BorderLayout());
+        add(crearNavBar(),         BorderLayout.NORTH);
+        add(crearContenido(),      BorderLayout.CENTER);
+        add(crearBarraInferior(),  BorderLayout.SOUTH);
     }
 
-    private void configurarPermisos() {
-  // 1. NOMBRES DE NAVEGACIÓN SUPERIOR
-        jButton8.setText("CORTE");
-        jButton9.setText("USUARIO");
-        
-        // 2. NOMBRES DE ACCIÓN INFERIOR
-        jButton11.setText("DESCUENTO");
-        jButton12.setText("ELIMINAR");
-        jButton14.setText("COBRAR");
+    /** Franja superior con logo, navegación de módulos y usuario. */
+    private JPanel crearNavBar() {
+        JPanel nav = new JPanel(new BorderLayout());
+        nav.setBackground(COLOR_NEGRO);
 
-        // 3. LÓGICA DE VISIBILIDAD (Igual para ambas pantallas)
+        // ── Header (logo + nombre + usuario) ──────────────────────────────
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(COLOR_NEGRO);
+        header.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
+
+        JPanel izquierda = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        izquierda.setOpaque(false);
+
+        ImageIcon icon = new ImageIcon("logo.png");
+        Image img = icon.getImage().getScaledInstance(45, 45, Image.SCALE_SMOOTH);
+        izquierda.add(new JLabel(new ImageIcon(img)));
+
+        JLabel lblNombre = new JLabel("<html>Ferretería e Instalaciones<br>Eléctricas Alanís</html>");
+        lblNombre.setForeground(Color.WHITE);
+        lblNombre.setFont(new Font("Arial", Font.BOLD, 12));
+        izquierda.add(lblNombre);
+        header.add(izquierda, BorderLayout.WEST);
+
+        // "Usuario: X" — sin acción por ahora
+        JButton btnUsuarioInfo = new JButton("Usuario: " + nombreUsuario);
+        btnUsuarioInfo.setBackground(COLOR_NARANJA);
+        btnUsuarioInfo.setFont(new Font("Arial", Font.BOLD, 12));
+        btnUsuarioInfo.setFocusPainted(false);
+        btnUsuarioInfo.setBorderPainted(false);
+        header.add(btnUsuarioInfo, BorderLayout.EAST);
+        nav.add(header, BorderLayout.NORTH);
+
+        // ── Botones de módulos ─────────────────────────────────────────────
+        JPanel modulos = new JPanel(new BorderLayout());
+        modulos.setBackground(new Color(50, 50, 50));
+
+        JPanel izqModulos = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 2));
+        izqModulos.setOpaque(false);
+
+        // VENTAS (activo)
+        JButton btnVentas = crearBtnNav("Ventas", true);
+        btnVentas.addActionListener(e -> { /* ya estamos aquí */ });
+        izqModulos.add(btnVentas);
+
+        // PRODUCTOS (solo admin)
         if ("ADMIN".equalsIgnoreCase(rol)) {
-            // El Admin ve todo el menú superior para saltar entre módulos
-            jButton1.setVisible(true); // VENTAS (esta misma)
-            jButton4.setVisible(true); // PRODUCTOS
-            jButton5.setVisible(true); // INVENTARIO
-            jButton8.setVisible(true); // CORTE
-            jButton9.setVisible(true); // USUARIO
-        } else {
-            // El Empleado solo ve los módulos a los que tiene acceso
-            jButton1.setVisible(true); 
-            jButton5.setVisible(true);
-            
-            jButton4.setVisible(false);
-            jButton8.setVisible(false);
-            jButton9.setVisible(false);
+            JButton btnProductos = crearBtnNav("Productos", false);
+            btnProductos.addActionListener(e -> {
+                new PRODUCTOS(rol, nombreUsuario).setVisible(true);
+                dispose();
+            });
+            izqModulos.add(btnProductos);
         }
 
-        // 4. ACCIONES DE VENTA (Habilitadas para ambos por tu petición anterior)
-        jButton11.setVisible(true); // DESCUENTO
-        jButton12.setVisible(true); // ELIMINAR
-        jButton14.setVisible(true); // COBRAR
+        // INVENTARIO
+        JButton btnInventario = crearBtnNav("Inventario", false);
+        btnInventario.addActionListener(e ->
+            JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Inventario",
+                JOptionPane.INFORMATION_MESSAGE));
+        izqModulos.add(btnInventario);
 
-        // 5. LIMPIEZA DE BOTONES NO USADOS
-        jButton2.setVisible(false);
-        jButton3.setVisible(false);
-        jButton6.setVisible(false);
-        jButton7.setVisible(false);
-        jButton13.setVisible(false);
+        modulos.add(izqModulos, BorderLayout.WEST);
+
+        // Derecha: Corte y Usuario (solo admin)
+        if ("ADMIN".equalsIgnoreCase(rol)) {
+            JPanel derModulos = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 2));
+            derModulos.setOpaque(false);
+            JButton btnCorte = crearBtnNav("Corte", false);
+            btnCorte.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Corte",
+                    JOptionPane.INFORMATION_MESSAGE));
+            JButton btnUsuario = crearBtnNav("Usuario", false);
+            btnUsuario.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Usuario",
+                    JOptionPane.INFORMATION_MESSAGE));
+            derModulos.add(btnCorte);
+            derModulos.add(btnUsuario);
+            modulos.add(derModulos, BorderLayout.EAST);
+        }
+
+        nav.add(modulos, BorderLayout.SOUTH);
+        return nav;
     }
 
+    private JButton crearBtnNav(String texto, boolean activo) {
+        JButton btn = new JButton(texto);
+        btn.setBackground(activo ? COLOR_NARANJA : new Color(80, 80, 80));
+        btn.setForeground(activo ? COLOR_NEGRO : Color.WHITE);
+        btn.setFont(new Font("Arial", Font.BOLD, 13));
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setPreferredSize(new Dimension(110, 30));
+        return btn;
+    }
 
-    // -------------------------------------------------------------------------
-    // Cargar todos los productos al abrir la pantalla
-    // -------------------------------------------------------------------------
-    private void cargarTodosLosProductos() {
-        new SwingWorker<List<ProductoDTO>, Void>() {
+    /** Zona central: encabezado naranja + buscador + pestañas de tickets. */
+    private JPanel crearContenido() {
+        JPanel contenido = new JPanel(new BorderLayout());
+        contenido.setBackground(COLOR_FONDO);
+
+        // ── Franja naranja "Ventas" + botón Historial ──────────────────────
+        JPanel franjaVentas = new JPanel(new BorderLayout());
+        franjaVentas.setBackground(COLOR_NARANJA);
+        franjaVentas.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+
+        JLabel lblVentas = new JLabel("Ventas");
+        lblVentas.setFont(new Font("Arial", Font.BOLD, 16));
+        franjaVentas.add(lblVentas, BorderLayout.WEST);
+
+        JPanel btnsFranja = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        btnsFranja.setOpaque(false);
+        JButton btnTicket    = new JButton("Ticket");
+        JButton btnHistorial = new JButton("Historial");
+        btnHistorial.addActionListener(e ->
+            JOptionPane.showMessageDialog(this, "Historial en construcción.", "Historial",
+                JOptionPane.INFORMATION_MESSAGE));
+        btnsFranja.add(btnTicket);
+        btnsFranja.add(btnHistorial);
+        franjaVentas.add(btnsFranja, BorderLayout.EAST);
+
+        // ── Barra de búsqueda de producto ─────────────────────────────────
+        JPanel barraBusqueda = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 6));
+        barraBusqueda.setBackground(COLOR_FONDO);
+
+        JLabel lblCodigo = new JLabel("Código del Producto:");
+        lblCodigo.setFont(new Font("Arial", Font.PLAIN, 13));
+        txtCodigo = new JTextField(20);
+        txtCodigo.addActionListener(e -> agregarProductoAlTicket()); // Enter también agrega
+
+        JButton btnAgregar = new JButton("Agregar Producto");
+        btnAgregar.setBackground(new Color(51, 204, 0));
+        btnAgregar.setFont(new Font("Arial", Font.BOLD, 13));
+        btnAgregar.addActionListener(e -> agregarProductoAlTicket());
+
+        barraBusqueda.add(lblCodigo);
+        barraBusqueda.add(txtCodigo);
+        barraBusqueda.add(btnAgregar);
+
+        // ── Pestañas de tickets ───────────────────────────────────────────
+        ticketPane = new JTabbedPane();
+        ticketPane.setBackground(COLOR_FONDO);
+
+        for (int i = 1; i <= 3; i++) {
+            DefaultTableModel model = crearModeloTicket();
+            ticketModels.add(model);
+            ticketPane.addTab("Ticket " + i, crearPanelTicket(model));
+        }
+
+        // Panel superior (franja + buscador)
+        JPanel superior = new JPanel(new BorderLayout());
+        superior.add(franjaVentas,  BorderLayout.NORTH);
+        superior.add(barraBusqueda, BorderLayout.SOUTH);
+
+        contenido.add(superior,   BorderLayout.NORTH);
+        contenido.add(ticketPane, BorderLayout.CENTER);
+        return contenido;
+    }
+
+    /** Crea el modelo de tabla para un ticket (columnas fijas, sin filas iniciales). */
+    private DefaultTableModel crearModeloTicket() {
+        DefaultTableModel model = new DefaultTableModel(COLUMNAS, 0) {
             @Override
-            protected List<ProductoDTO> doInBackground() throws Exception {
-                String json = api.get("/productos");
-                return mapper.readValue(json, new TypeReference<List<ProductoDTO>>() {});
+            public boolean isCellEditable(int row, int col) {
+                return col == COL_CANT; // solo la cantidad es editable
             }
 
             @Override
-            protected void done() {
-                try {
-                    List<ProductoDTO> productos = get();
-                    tableModel.setRowCount(0);
-                    for (ProductoDTO p : productos) {
-                        tableModel.addRow(new Object[]{
-                            p.getCodigoBarras(),
-                            p.getDescripcion(),
-                            p.getPrecioVentaLista(),
-                            BigDecimal.ZERO,
-                            BigDecimal.ZERO,
-                            p.getExistencia()
-                        });
-                    }
-                } catch (Exception ex) {
-                    mostrarError("Error al cargar productos", ex);
+            public Class<?> getColumnClass(int col) {
+                if (col == COL_CANT) return BigDecimal.class;
+                return Object.class;
+            }
+        };
+
+        // Recalcula importe cuando cambia la cantidad
+        model.addTableModelListener(e -> {
+            if (e.getColumn() == COL_CANT) {
+                int fila = e.getFirstRow();
+                recalcularImporte(model, fila);
+                actualizarTotal(model);
+            }
+        });
+
+        return model;
+    }
+
+    /** Crea el JScrollPane+JTable para una pestaña de ticket. */
+    private JScrollPane crearPanelTicket(DefaultTableModel model) {
+        JTable tabla = new JTable(model);
+        tabla.setRowHeight(24);
+        tabla.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tabla.setFont(new Font("Arial", Font.PLAIN, 13));
+        tabla.getTableHeader().setFont(new Font("Arial", Font.BOLD, 13));
+
+        // Columnas que no necesitan mucho ancho
+        tabla.getColumnModel().getColumn(COL_CODIGO).setPreferredWidth(120);
+        tabla.getColumnModel().getColumn(COL_DESC).setPreferredWidth(280);
+        tabla.getColumnModel().getColumn(COL_PRECIO).setPreferredWidth(80);
+        tabla.getColumnModel().getColumn(COL_CANT).setPreferredWidth(60);
+        tabla.getColumnModel().getColumn(COL_IMPORTE).setPreferredWidth(90);
+        tabla.getColumnModel().getColumn(COL_EXISTENCIA).setPreferredWidth(85);
+        tabla.getColumnModel().getColumn(COL_DESCUENTO).setPreferredWidth(80);
+
+        // Renderer para centrar descuento como "X%"
+        DefaultTableCellRenderer centrado = new DefaultTableCellRenderer();
+        centrado.setHorizontalAlignment(SwingConstants.CENTER);
+        tabla.getColumnModel().getColumn(COL_DESCUENTO).setCellRenderer(centrado);
+
+        // Filas alternas en amarillo claro (como en el prototipo)
+        tabla.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable t, Object value,
+                    boolean selected, boolean focused, int row, int col) {
+                Component c = super.getTableCellRendererComponent(t, value, selected, focused, row, col);
+                if (!selected) {
+                    c.setBackground(row % 2 == 0 ? new Color(255, 255, 200) : Color.WHITE);
                 }
+                return c;
             }
-        }.execute();
+        });
+
+        return new JScrollPane(tabla);
     }
 
-    // -------------------------------------------------------------------------
-    // jButton10 → "Agregar Producto"
-    // -------------------------------------------------------------------------
-    private void agregarProducto() {
-        String codigo = jTextField1.getText().trim();
+    /** Barra inferior: Eliminar + Descuento a la izquierda, Cobrar + Total a la derecha. */
+    private JPanel crearBarraInferior() {
+        JPanel barra = new JPanel(new BorderLayout());
+        barra.setBackground(COLOR_FONDO);
+        barra.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
+
+        // Izquierda: Regresar | Eliminar | Descuento
+        JPanel izquierda = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        izquierda.setOpaque(false);
+
+        JButton btnRegresar = new JButton("Regresar");
+        btnRegresar.addActionListener(e -> {
+            new MenuPrincipal(rol, nombreUsuario).setVisible(true);
+            dispose();
+        });
+
+        JButton btnEliminar = new JButton("Eliminar");
+        btnEliminar.setBackground(new Color(204, 51, 0));
+        btnEliminar.setForeground(Color.WHITE);
+        btnEliminar.setFont(new Font("Arial", Font.BOLD, 13));
+        btnEliminar.addActionListener(e -> eliminarRenglonDelTicket());
+
+        JButton btnDescuento = new JButton("Descuento");
+        btnDescuento.setBackground(new Color(255, 102, 0));
+        btnDescuento.setForeground(Color.WHITE);
+        btnDescuento.setFont(new Font("Arial", Font.BOLD, 13));
+        btnDescuento.addActionListener(e -> aplicarDescuento());
+
+        izquierda.add(btnRegresar);
+        izquierda.add(btnEliminar);
+        izquierda.add(btnDescuento);
+
+        // Derecha: Cobrar + total
+        JPanel derecha = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        derecha.setOpaque(false);
+
+        JButton btnCobrar = new JButton("Cobrar");
+        btnCobrar.setBackground(new Color(102, 204, 0));
+        btnCobrar.setFont(new Font("Arial", Font.BOLD, 14));
+        btnCobrar.setPreferredSize(new Dimension(90, 35));
+        btnCobrar.addActionListener(e ->
+            JOptionPane.showMessageDialog(this, "Flujo de cobro en construcción.", "Cobrar",
+                JOptionPane.INFORMATION_MESSAGE));
+
+        lblTotal = new JLabel("$ 0.00");
+        lblTotal.setFont(new Font("Arial", Font.BOLD, 20));
+        lblTotal.setBackground(new Color(255, 204, 102));
+        lblTotal.setOpaque(true);
+        lblTotal.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+
+        derecha.add(btnCobrar);
+        derecha.add(lblTotal);
+
+        barra.add(izquierda, BorderLayout.WEST);
+        barra.add(derecha,   BorderLayout.EAST);
+        return barra;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Lógica de negocio
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** Busca el producto por código y lo agrega al ticket activo. */
+    private void agregarProductoAlTicket() {
+        String codigo = txtCodigo.getText().trim();
         if (codigo.isEmpty()) {
             JOptionPane.showMessageDialog(this,
-                    "Ingresa un código de barras para buscar.",
-                    "Campo requerido", JOptionPane.WARNING_MESSAGE);
+                "Ingresa el código de barras del producto.",
+                "Campo requerido", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
+        DefaultTableModel modelActivo = getModeloActivo();
+
+        // Si ya existe en el ticket, solo incrementa cantidad
+        for (int i = 0; i < modelActivo.getRowCount(); i++) {
+            if (codigo.equals(modelActivo.getValueAt(i, COL_CODIGO))) {
+                BigDecimal cantActual = parseBD(modelActivo.getValueAt(i, COL_CANT));
+                modelActivo.setValueAt(cantActual.add(BigDecimal.ONE), i, COL_CANT);
+                recalcularImporte(modelActivo, i);
+                actualizarTotal(modelActivo);
+                txtCodigo.setText("");
+                return;
+            }
+        }
+
+        // Si no existe, consulta la API y agrega el renglón
         new SwingWorker<ProductoDTO, Void>() {
             @Override
             protected ProductoDTO doInBackground() throws Exception {
-                String json = api.get("/productos/" +
-                        URLEncoder.encode(codigo, StandardCharsets.UTF_8));
+                String encoded = URLEncoder.encode(codigo, StandardCharsets.UTF_8);
+                String json = api.get("/productos/" + encoded);
                 return mapper.readValue(json, ProductoDTO.class);
             }
 
@@ -159,484 +405,137 @@ public class VENTAS extends javax.swing.JFrame {
             protected void done() {
                 try {
                     ProductoDTO p = get();
+                    BigDecimal precio = p.getPrecioVentaLista() != null
+                        ? p.getPrecioVentaLista() : BigDecimal.ZERO;
+                    BigDecimal cantidad   = BigDecimal.ONE;
+                    BigDecimal importe    = precio;
+                    BigDecimal existencia = p.getExistencia() != null
+                        ? p.getExistencia() : BigDecimal.ZERO;
 
-                    for (int i = 0; i < tableModel.getRowCount(); i++) {
-                        if (codigo.equals(tableModel.getValueAt(i, 0))) {
-                            JOptionPane.showMessageDialog(VENTAS.this,
-                                    "El producto ya está en la lista.",
-                                    "Duplicado", JOptionPane.INFORMATION_MESSAGE);
-                            return;
-                        }
-                    }
-
-                    tableModel.addRow(new Object[]{
+                    modelActivo.addRow(new Object[]{
                         p.getCodigoBarras(),
                         p.getDescripcion(),
-                        p.getPrecioVentaLista(),
-                        BigDecimal.ZERO,
-                        BigDecimal.ZERO,
-                        p.getExistencia()
+                        precio,
+                        cantidad,
+                        importe,
+                        existencia,
+                        "0%"         // descuento inicial
                     });
-                    jLabel3.setText("$ " + p.getPrecioVentaLista());
-                    jTextField1.setText("");
+                    actualizarTotal(modelActivo);
+                    txtCodigo.setText("");
                 } catch (Exception ex) {
-                    mostrarError("Producto no encontrado", ex);
+                    LOGGER.log(Level.WARNING, "Producto no encontrado", ex);
+                    JOptionPane.showMessageDialog(VENTAS.this,
+                        "Producto no encontrado: " + codigo,
+                        "Error", JOptionPane.ERROR_MESSAGE);
                 }
             }
         }.execute();
     }
 
-    // -------------------------------------------------------------------------
-    // jButton11 → "Modificar"
-    // -------------------------------------------------------------------------
-    private void modificarProducto() {
-        int fila = jTable1.getSelectedRow();
+    /**
+     * Elimina el renglón seleccionado del ticket activo.
+     * No hace ninguna llamada a la API: solo borra la fila de la tabla.
+     */
+    private void eliminarRenglonDelTicket() {
+        JTable tabla = getTablaActiva();
+        int fila = tabla.getSelectedRow();
         if (fila == -1) {
             JOptionPane.showMessageDialog(this,
-                    "Selecciona un producto de la tabla para modificar.",
-                    "Sin selección", JOptionPane.WARNING_MESSAGE);
+                "Selecciona un producto de la lista para eliminarlo.",
+                "Sin selección", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        DefaultTableModel model = getModeloActivo();
+        String desc = (String) model.getValueAt(fila, COL_DESC);
+        int ok = JOptionPane.showConfirmDialog(this,
+            "¿Quitar \"" + desc + "\" del ticket?",
+            "Confirmar", JOptionPane.YES_NO_OPTION);
+        if (ok == JOptionPane.YES_OPTION) {
+            model.removeRow(fila);
+            actualizarTotal(model);
+        }
+    }
+
+    /** Muestra un diálogo para ingresar el % de descuento al renglón seleccionado. */
+    private void aplicarDescuento() {
+        JTable tabla = getTablaActiva();
+        int fila = tabla.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this,
+                "Selecciona un producto para aplicar descuento.",
+                "Sin selección", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        String codigo = (String) tableModel.getValueAt(fila, 0);
-        String descripcionActual = (String) tableModel.getValueAt(fila, 1);
-        Object precioActual = tableModel.getValueAt(fila, 2);
+        DefaultTableModel model = getModeloActivo();
+        String desc = (String) model.getValueAt(fila, COL_DESC);
 
-        JTextField campoDesc = new JTextField(descripcionActual, 25);
-        JTextField campoPrecio = new JTextField(precioActual != null ? precioActual.toString() : "", 10);
-
-        JPanel panel = new JPanel(new java.awt.GridLayout(4, 1, 5, 5));
-        panel.add(new JLabel("Descripción:"));
-        panel.add(campoDesc);
-        panel.add(new JLabel("Precio de Venta:"));
-        panel.add(campoPrecio);
-
-        int resultado = JOptionPane.showConfirmDialog(this, panel,
-                "Modificar Producto: " + codigo,
-                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-        if (resultado != JOptionPane.OK_OPTION) return;
+        String input = JOptionPane.showInputDialog(this,
+            "Descuento (%) para \"" + desc + "\":",
+            "Aplicar Descuento", JOptionPane.PLAIN_MESSAGE);
+        if (input == null || input.isBlank()) return;
 
         try {
-            new SwingWorker<String, Void>() {
-                @Override
-                protected String doInBackground() throws Exception {
-                    String json = api.get("/productos/" +
-                            URLEncoder.encode(codigo, StandardCharsets.UTF_8));
+            double pct = Double.parseDouble(input.replace("%", "").trim());
+            if (pct < 0 || pct > 100) throw new NumberFormatException();
 
-                    ProductoDTO p = mapper.readValue(json, ProductoDTO.class);
-
-                    p.setDescripcion(campoDesc.getText().trim());
-                    p.setPrecioVentaLista(new BigDecimal(campoPrecio.getText().trim()));
-
-                    String jsonBody = mapper.writeValueAsString(p);
-
-                    return api.put("/productos/" +
-                            URLEncoder.encode(codigo, StandardCharsets.UTF_8), jsonBody);
-                }
-
-                @Override
-                protected void done() {
-                    try {
-                        get();
-                        JOptionPane.showMessageDialog(VENTAS.this,
-                                "Producto modificado correctamente.",
-                                "Éxito", JOptionPane.INFORMATION_MESSAGE);
-                        cargarTodosLosProductos();
-                    } catch (Exception ex) {
-                        mostrarError("Error al modificar producto", ex);
-                    }
-                }
-            }.execute();
-
-        } catch (Exception e) {
-            mostrarError("Error inesperado", e);
+            model.setValueAt(pct + "%", fila, COL_DESCUENTO);
+            recalcularImporte(model, fila);
+            actualizarTotal(model);
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this,
+                "Ingresa un número válido entre 0 y 100.",
+                "Valor inválido", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    // -------------------------------------------------------------------------
-    // jButton12 → "Eliminar"
-    // -------------------------------------------------------------------------
-    private void eliminarProducto() {
-        int fila = jTable1.getSelectedRow();
+    // ─────────────────────────────────────────────────────────────────────────
+    // Cálculos
+    // ─────────────────────────────────────────────────────────────────────────
 
-        if (fila == -1) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Selecciona un producto de la tabla para eliminar.",
-                    "Sin selección",
-                    JOptionPane.WARNING_MESSAGE
-            );
-            return;
+    /** Importe = precio * cantidad * (1 - descuento/100) */
+    private void recalcularImporte(DefaultTableModel model, int fila) {
+        BigDecimal precio    = parseBD(model.getValueAt(fila, COL_PRECIO));
+        BigDecimal cantidad  = parseBD(model.getValueAt(fila, COL_CANT));
+        String descStr       = String.valueOf(model.getValueAt(fila, COL_DESCUENTO));
+        double descPct       = 0.0;
+        try {
+            descPct = Double.parseDouble(descStr.replace("%", "").trim());
+        } catch (NumberFormatException ignored) {}
+
+        BigDecimal factor  = BigDecimal.ONE.subtract(
+            BigDecimal.valueOf(descPct / 100.0));
+        BigDecimal importe = precio.multiply(cantidad).multiply(factor)
+            .setScale(2, RoundingMode.HALF_UP);
+        model.setValueAt(importe, fila, COL_IMPORTE);
+    }
+
+    /** Suma los importes de todas las filas del modelo y actualiza la etiqueta. */
+    private void actualizarTotal(DefaultTableModel model) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (int i = 0; i < model.getRowCount(); i++) {
+            total = total.add(parseBD(model.getValueAt(i, COL_IMPORTE)));
         }
-
-        String codigo = (String) tableModel.getValueAt(fila, 0);
-        String descripcion = (String) tableModel.getValueAt(fila, 1);
-
-        int confirmacion = JOptionPane.showConfirmDialog(
-                this,
-                "¿Eliminar el producto: " + descripcion + "?",
-                "Confirmar eliminación",
-                JOptionPane.YES_NO_OPTION
-        );
-
-        if (confirmacion != JOptionPane.YES_OPTION) return;
-
-        new SwingWorker<Integer, Void>() {
-            @Override
-            protected Integer doInBackground() throws Exception {
-                return api.delete("/productos/" +
-                        URLEncoder.encode(codigo, StandardCharsets.UTF_8));
-            }
-
-            @Override
-            protected void done() {
-                try {
-                    int status = get();
-
-                    if (status == 204) {
-                        JOptionPane.showMessageDialog(
-                                VENTAS.this,
-                                "Producto eliminado.",
-                                "Éxito",
-                                JOptionPane.INFORMATION_MESSAGE
-                        );
-                        jLabel3.setText("$ 0.00");
-                        cargarTodosLosProductos();
-
-                    } else if (status == 409) {
-                        JOptionPane.showMessageDialog(
-                                VENTAS.this,
-                                "No se puede eliminar: el producto tiene ventas registradas.",
-                                "Conflicto",
-                                JOptionPane.WARNING_MESSAGE
-                        );
-
-                    } else if (status == 404) {
-                        JOptionPane.showMessageDialog(
-                                VENTAS.this,
-                                "El producto no existe en el sistema.",
-                                "No encontrado",
-                                JOptionPane.WARNING_MESSAGE
-                        );
-                    }
-
-                } catch (Exception ex) {
-                    mostrarError("Error al eliminar producto", ex);
-                }
-            }
-        }.execute();
+        lblTotal.setText("$ " + total.setScale(2, RoundingMode.HALF_UP));
     }
 
-    // -------------------------------------------------------------------------
-    // Utilidad de error
-    // -------------------------------------------------------------------------
-    private void mostrarError(String titulo, Exception ex) {
-        logger.log(java.util.logging.Level.SEVERE, titulo, ex);
-        JOptionPane.showMessageDialog(this,
-                titulo + ":\n" + ex.getMessage(),
-                "Error", JOptionPane.ERROR_MESSAGE);
+    // ─────────────────────────────────────────────────────────────────────────
+    // Helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private DefaultTableModel getModeloActivo() {
+        return ticketModels.get(ticketPane.getSelectedIndex());
     }
 
-    // =========================================================================
-    // CÓDIGO GENERADO POR NETBEANS — NO MODIFICAR MANUALMENTE
-    // =========================================================================
+    private JTable getTablaActiva() {
+        JScrollPane scroll = (JScrollPane) ticketPane.getSelectedComponent();
+        return (JTable) scroll.getViewport().getView();
+    }
 
-    @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    private void initComponents() {
-
-        jPanel1 = new javax.swing.JPanel();
-        jLabel2 = new javax.swing.JLabel();
-        jButton1 = new javax.swing.JButton();
-        jButton2 = new javax.swing.JButton();
-        jButton3 = new javax.swing.JButton();
-        jButton4 = new javax.swing.JButton();
-        jButton5 = new javax.swing.JButton();
-        jButton6 = new javax.swing.JButton();
-        jButton7 = new javax.swing.JButton();
-        jButton8 = new javax.swing.JButton();
-        jButton9 = new javax.swing.JButton();
-        jLabel1 = new javax.swing.JLabel();
-        jTextField1 = new javax.swing.JTextField();
-        jButton10 = new javax.swing.JButton();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        jTable1 = new javax.swing.JTable();
-        jButton11 = new javax.swing.JButton();
-        jButton12 = new javax.swing.JButton();
-        jButton13 = new javax.swing.JButton();
-        jButton14 = new javax.swing.JButton();
-        jLabel3 = new javax.swing.JLabel();
-        jButton15 = new javax.swing.JButton();
-
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-
-        jLabel2.setBackground(new java.awt.Color(0, 0, 0));
-        jLabel2.setFont(new java.awt.Font("Times New Roman", 1, 36));
-        jLabel2.setForeground(new java.awt.Color(255, 153, 0));
-        jLabel2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel2.setToolTipText("");
-        jLabel2.setOpaque(true);
-
-        jButton1.setBackground(new java.awt.Color(255, 153, 0));
-        jButton1.setFont(new java.awt.Font("ITF Devanagari Marathi", 0, 14));
-        jButton1.setText("VENTAS");
-        jButton1.addActionListener(this::jButton1ActionPerformed);
-
-        jButton2.setBackground(new java.awt.Color(255, 153, 0));
-        jButton2.setFont(new java.awt.Font("ITF Devanagari Marathi", 0, 14));
-        jButton2.setText("CRÉDITOS");
-
-        jButton3.setBackground(new java.awt.Color(255, 153, 0));
-        jButton3.setFont(new java.awt.Font("ITF Devanagari Marathi", 0, 14));
-        jButton3.setText("CLIENTES");
-        jButton3.addActionListener(this::jButton3ActionPerformed);
-
-        jButton4.setBackground(new java.awt.Color(255, 153, 0));
-        jButton4.setFont(new java.awt.Font("ITF Devanagari Marathi", 0, 14));
-        jButton4.setText("PRODUCTOS");
-        jButton4.addActionListener(this::jButton4ActionPerformed);
-
-        jButton5.setBackground(new java.awt.Color(255, 153, 0));
-        jButton5.setFont(new java.awt.Font("ITF Devanagari Marathi", 0, 14));
-        jButton5.setText("INVENTARIO");
-        jButton5.addActionListener(this::jButton5ActionPerformed);
-
-        jButton6.setBackground(new java.awt.Color(255, 153, 0));
-        jButton6.setFont(new java.awt.Font("ITF Devanagari Marathi", 0, 14));
-        jButton6.setText("PROVEEDORES");
-
-        jButton7.setBackground(new java.awt.Color(255, 153, 0));
-        jButton7.setFont(new java.awt.Font("ITF Devanagari Marathi", 0, 14));
-        jButton7.setText("COMPRAS");
-        jButton7.addActionListener(this::jButton7ActionPerformed);
-
-        jButton8.setBackground(new java.awt.Color(255, 153, 0));
-        jButton8.setFont(new java.awt.Font("ITF Devanagari Marathi", 0, 14));
-        jButton8.setText("REPORTES");
-
-        jButton9.setBackground(new java.awt.Color(255, 153, 0));
-        jButton9.setFont(new java.awt.Font("ITF Devanagari Marathi", 0, 14));
-        jButton9.setText("CONFIGURACIÓN");
-
-        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
-        jPanel1.setLayout(jPanel1Layout);
-        jPanel1Layout.setHorizontalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 1071, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(jButton1)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton2)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton3)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton4)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton5)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton6)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton7)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton8)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton9)))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-        jPanel1Layout.setVerticalGroup(
-            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanel1Layout.createSequentialGroup()
-                .addComponent(jLabel2)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButton1)
-                    .addComponent(jButton2)
-                    .addComponent(jButton3)
-                    .addComponent(jButton4)
-                    .addComponent(jButton5)
-                    .addComponent(jButton6)
-                    .addComponent(jButton7)
-                    .addComponent(jButton8)
-                    .addComponent(jButton9))
-                .addGap(0, 20, Short.MAX_VALUE))
-        );
-
-        jLabel1.setBackground(new java.awt.Color(255, 153, 0));
-        jLabel1.setText("Codigo del Producto");
-        jLabel1.setBorder(new javax.swing.border.SoftBevelBorder(javax.swing.border.BevelBorder.RAISED,
-                new java.awt.Color(255, 153, 0), new java.awt.Color(255, 153, 51),
-                java.awt.Color.black, java.awt.Color.black));
-
-        jTextField1.setBorder(javax.swing.BorderFactory.createBevelBorder(
-                javax.swing.border.BevelBorder.RAISED,
-                java.awt.Color.black, new java.awt.Color(255, 102, 0),
-                java.awt.Color.black, java.awt.Color.black));
-        jTextField1.addActionListener(this::jTextField1ActionPerformed);
-
-        jButton10.setBackground(new java.awt.Color(51, 204, 0));
-        jButton10.setText("Agregar Producto ");
-        jButton10.addActionListener(this::jButton10ActionPerformed);
-
-        jTable1.setModel(new javax.swing.table.DefaultTableModel(
-            new Object[][]{},
-            new String[]{"Codigo De Barras", "Descripcion", "Precio", "Cantidad ", "Importe ", "Existencia"}
-        ));
-        jScrollPane1.setViewportView(jTable1);
-
-        jButton11.setBackground(new java.awt.Color(255, 102, 0));
-        jButton11.setText("Modificar");
-        jButton11.addActionListener(this::jButton11ActionPerformed);
-
-        jButton12.setBackground(new java.awt.Color(204, 51, 0));
-        jButton12.setText("Eliminar");
-        jButton12.addActionListener(this::jButton12ActionPerformed);
-
-        jButton13.setBackground(new java.awt.Color(255, 153, 0));
-        jButton13.setText("Asignar Cliente");
-
-        jButton14.setBackground(new java.awt.Color(102, 204, 0));
-        jButton14.setText("Cobrar");
-
-        jLabel3.setBackground(new java.awt.Color(255, 204, 102));
-        jLabel3.setFont(new java.awt.Font("ITF Devanagari Marathi", 0, 24));
-        jLabel3.setText("$ 0.00");
-
-        jButton15.setText("REGRESAR");
-        jButton15.addActionListener(this::jButton15ActionPerformed);
-
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-            .addGroup(layout.createSequentialGroup()
-                .addGap(37, 37, 37)
-                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 133, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jTextField1, javax.swing.GroupLayout.PREFERRED_SIZE, 184, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jButton10)
-                .addGap(58, 58, 58))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(126, 126, 126))
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 1048, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jButton11)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton12)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton13)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton14))
-                    .addComponent(jButton15))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton15)
-                .addGap(5, 5, 5)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jButton10)
-                    .addComponent(jTextField1))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 389, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButton11)
-                    .addComponent(jButton12)
-                    .addComponent(jButton13)
-                    .addComponent(jButton14))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE))
-        );
-
-        pack();
-    }// </editor-fold>//GEN-END:initComponents
-
-    // =========================================================================
-    // HANDLERS DE BOTONES
-    // =========================================================================
-
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        // TODO: abrir pantalla de Ventas
-    }//GEN-LAST:event_jButton1ActionPerformed
-
-    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-        // TODO: abrir pantalla de Clientes
-    }//GEN-LAST:event_jButton3ActionPerformed
-
-    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
-        // Ya estamos en PRODUCTOS
-    }//GEN-LAST:event_jButton4ActionPerformed
-
-    private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
-        // TODO: abrir pantalla de Inventario
-    }//GEN-LAST:event_jButton5ActionPerformed
-
-    private void jButton7ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton7ActionPerformed
-        // TODO: abrir pantalla de Compras
-    }//GEN-LAST:event_jButton7ActionPerformed
-
-    private void jTextField1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextField1ActionPerformed
-        agregarProducto();
-    }//GEN-LAST:event_jTextField1ActionPerformed
-
-    private void jButton10ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton10ActionPerformed
-        agregarProducto();
-    }//GEN-LAST:event_jButton10ActionPerformed
-
-    private void jButton11ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton11ActionPerformed
-        modificarProducto();
-    }//GEN-LAST:event_jButton11ActionPerformed
-
-    private void jButton12ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton12ActionPerformed
-        eliminarProducto();
-    }//GEN-LAST:event_jButton12ActionPerformed
-
-    private void jButton15ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton15ActionPerformed
-        new MenuPrincipal(rol).setVisible(true);
-        this.dispose();
-    }//GEN-LAST:event_jButton15ActionPerformed
-
-    
-
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton10;
-    private javax.swing.JButton jButton11;
-    private javax.swing.JButton jButton12;
-    private javax.swing.JButton jButton13;
-    private javax.swing.JButton jButton14;
-    private javax.swing.JButton jButton15;
-    private javax.swing.JButton jButton2;
-    private javax.swing.JButton jButton3;
-    private javax.swing.JButton jButton4;
-    private javax.swing.JButton jButton5;
-    private javax.swing.JButton jButton6;
-    private javax.swing.JButton jButton7;
-    private javax.swing.JButton jButton8;
-    private javax.swing.JButton jButton9;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
-    private javax.swing.JPanel jPanel1;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JTable jTable1;
-    private javax.swing.JTextField jTextField1;
-    // End of variables declaration//GEN-END:variables
+    private BigDecimal parseBD(Object val) {
+        if (val == null) return BigDecimal.ZERO;
+        try { return new BigDecimal(val.toString()); }
+        catch (NumberFormatException e) { return BigDecimal.ZERO; }
+    }
 }
