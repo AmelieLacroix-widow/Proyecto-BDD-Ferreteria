@@ -28,6 +28,8 @@ import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public class Login extends JFrame {
 
     public Login() {
@@ -171,20 +173,21 @@ public class Login extends JFrame {
             System.out.println("Respuesta: " + respuesta);
 
             // 🔥 detección simple de rol
-            if (respuesta.contains("ADMIN")) {
-                JOptionPane.showMessageDialog(this, "Bienvenido ADMIN");
+           ObjectMapper mapper = new ObjectMapper();
+            UsuarioDTO usuarioDTO = mapper.readValue(respuesta, UsuarioDTO.class);
+            String rol = usuarioDTO.getRol();
 
-                // 👉 aquí abres tu menú admin
-                // new MenuAdmin().setVisible(true);
+if ("ADMIN".equalsIgnoreCase(rol)) {
+    JOptionPane.showMessageDialog(this, "Bienvenido ADMIN");
+} else {
+    JOptionPane.showMessageDialog(this, "Bienvenido USUARIO");
+}
 
-            } else {
-                JOptionPane.showMessageDialog(this, "Bienvenido USUARIO");
+// abrir menú único dinámico
+MenuPrincipal menu = new MenuPrincipal(rol);
+menu.setVisible(true);
 
-                // 👉 menú limitado
-                // new MenuEmpleado().setVisible(true);
-            }
-
-            this.dispose();
+this.dispose();
 
         } else {
             error.setVisible(true);
