@@ -13,31 +13,38 @@ public class MenuPrincipal extends javax.swing.JFrame {
         initComponents();
         setLocationRelativeTo(null);
 
-        acomodarMenu();
+        configurarMenu();
     }
 
-    private void acomodarMenu() {
+    private void configurarMenu() {
 
-        // Botones que sí vas a usar
-        jButton1.setText("VENTAS");
-        jButton4.setText("PRODUCTOS");
-        jButton5.setText("INVENTARIO");
-        jButton8.setText("CORTE");
-        jButton9.setText("USUARIO");
+    // Texto de botones (SIEMPRE)
+    jButton1.setText("VENTAS");
+    jButton4.setText("PRODUCTOS");
+    jButton5.setText("INVENTARIO");
+    jButton8.setText("CORTE");
+    jButton9.setText("USUARIO");
 
-        // Botones que ya no quieres mostrar nunca
-        jButton2.setVisible(false); // CRÉDITOS
-        jButton3.setVisible(false); // CLIENTES
-        jButton6.setVisible(false); // PROVEEDORES
-        jButton7.setVisible(false); // COMPRAS
+    // Primero ocultas todo lo no usado
+    jButton2.setVisible(false); // CRÉDITOS
+    jButton3.setVisible(false); // CLIENTES
+    jButton6.setVisible(false); // PROVEEDORES
+    jButton7.setVisible(false); // COMPRAS
 
-        // Si no es admin, solo deja dos opciones
-        if (!"ADMIN".equals(rol)) {
-            jButton4.setVisible(false); // PRODUCTOS
-            jButton8.setVisible(false); // CORTE
-            jButton9.setVisible(false); // USUARIO
-        }
+    // Ahora defines por rol lo que SÍ se ve
+    if ("ADMIN".equalsIgnoreCase(rol)) {
+
+        jButton4.setVisible(true);  // PRODUCTOS
+        jButton8.setVisible(true);  // CORTE
+        jButton9.setVisible(true);  // USUARIO
+
+    } else {
+
+        jButton4.setVisible(true);  // PRODUCTOS (si empleados lo ven)
+        jButton8.setVisible(false); // CORTE
+        jButton9.setVisible(false); // USUARIO
     }
+}
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
