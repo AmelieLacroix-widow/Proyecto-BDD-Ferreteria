@@ -61,30 +61,42 @@ public class PRODUCTOS extends javax.swing.JFrame {
     }
 
     private void configurarPermisos() {
-  // 1. FORZAR TEXTOS PARA QUE COINCIDAN CON EL MENÚ PRINCIPAL
+  // 1. FORZAR TEXTOS DEL MENÚ SUPERIOR
     jButton8.setText("CORTE");
     jButton9.setText("USUARIO");
 
-    // 2. Ocultar los botones del menú superior que no se usan en esta pantalla
+    // 2. RECONFIGURACIÓN DE BOTONES INFERIORES (La "Limpieza")
+    jButton11.setText("DESCUENTO");       // Antes era 'Modificar'
+    jButton12.setText("ELIMINAR");        // Se mantiene
+    jButton13.setVisible(false);          // Ocultamos 'Asignar Cliente'
+    jButton14.setText("COBRAR");          // Se mantiene
+
+    // 3. Ocultar botones no usados del menú superior
     jButton2.setVisible(false); // CRÉDITOS
     jButton3.setVisible(false); // CLIENTES
     jButton6.setVisible(false); // PROVEEDORES
     jButton7.setVisible(false); // COMPRAS
 
-    // 3. Configurar visibilidad por ROL
+    // 4. LÓGICA DE SEGURIDAD POR ROL
     if ("ADMIN".equalsIgnoreCase(rol)) {
-        // El Admin sí ve estos botones con sus nombres nuevos
+        // El Admin ve todo lo habilitado
         jButton8.setVisible(true);  // CORTE
         jButton9.setVisible(true);  // USUARIO
+        jButton11.setVisible(true); // DESCUENTO
+        jButton12.setVisible(true); // ELIMINAR
     } else {
-        // El empleado no ve funciones administrativas
+        // El Empleado solo puede ver lo básico
         jButton8.setVisible(false); 
         jButton9.setVisible(false);
         
-        // También ocultamos Modificar y Eliminar para empleados
-        jButton11.setVisible(false); 
-        jButton12.setVisible(false);
+        // Generalmente, un empleado no debería poder eliminar productos o dar descuentos 
+        // sin supervisión, así que los ocultamos por seguridad:
+        jButton11.setVisible(false); // DESCUENTO
+        jButton12.setVisible(false); // ELIMINAR
     }
+    
+    // El botón de COBRAR (jButton14) se queda visible para ambos (Admin y Empleado)
+    jButton14.setVisible(true);
 }
 
     // -------------------------------------------------------------------------
