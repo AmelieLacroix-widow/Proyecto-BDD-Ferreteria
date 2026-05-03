@@ -171,27 +171,27 @@ public class MenuPrincipal extends javax.swing.JFrame {
 
     private void configurarMenu() {
 
-    // 1. Primero ocultamos ABSOLUTAMENTE TODO lo que no sea Ventas o Inventario
-    jButton2.setVisible(false); // CRÉDITOS
-    jButton3.setVisible(false); // CLIENTES
-    jButton4.setVisible(false); // PRODUCTOS (La lista general)
-    jButton6.setVisible(false); // PROVEEDORES
-    jButton7.setVisible(false); // COMPRAS
-    jButton8.setVisible(false); // CORTE
-    jButton9.setVisible(false); // USUARIO
+    // 1. Botones que SIEMPRE se ven para TODOS (Ventas e Inventario)
+    jButton1.setVisible(true); // VENTAS
+    jButton5.setVisible(true); // INVENTARIO
 
-    // 2. Ahora habilitamos según el rol
+    // 2. Botones que SOLO el Admin ve
     if ("ADMIN".equalsIgnoreCase(rol)) {
-        // El admin recupera la vista de todo lo necesario
         jButton4.setVisible(true); // PRODUCTOS
         jButton8.setVisible(true); // CORTE
         jButton9.setVisible(true); // USUARIO
-        // (Agrega aquí otros que el admin sí deba ver)
+    } else {
+        // Para el empleado ocultamos el resto
+        jButton4.setVisible(false);
+        jButton8.setVisible(false);
+        jButton9.setVisible(false);
     }
 
-    // 3. Botones que AMBOS ven siempre (según tu petición)
-    jButton1.setVisible(true); // VENTAS
-    jButton5.setVisible(true); // INVENTARIO
+    // 3. Botones que no estás usando actualmente (Créditos, Clientes, etc.)
+    jButton2.setVisible(false);
+    jButton3.setVisible(false);
+    jButton6.setVisible(false);
+    jButton7.setVisible(false);
 }
 
 

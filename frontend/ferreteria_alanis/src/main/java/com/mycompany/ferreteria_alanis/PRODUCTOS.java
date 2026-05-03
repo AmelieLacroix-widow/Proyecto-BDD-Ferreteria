@@ -61,41 +61,40 @@ public class PRODUCTOS extends javax.swing.JFrame {
     }
 
     private void configurarPermisos() {
-  // 1. Textos de soporte
+  // Forzamos los nombres para que sean iguales al menú anterior
     jButton8.setText("CORTE");
     jButton9.setText("USUARIO");
     jButton11.setText("DESCUENTO");
 
-    // 2. Visibilidad del Menú Superior (Igual que en el Principal)
-    jButton2.setVisible(false); 
-    jButton3.setVisible(false);
-    jButton4.setVisible(false); 
-    jButton6.setVisible(false);
-    jButton7.setVisible(false);
-    
-    // 3. Lógica de botones superiores e inferiores por ROL
+    // Lógica para los botones del menú superior (Navegación)
     if ("ADMIN".equalsIgnoreCase(rol)) {
-        jButton8.setVisible(true);  // CORTE
-        jButton9.setVisible(true);  // USUARIO
-        
-        // El admin siempre tiene acceso a las acciones
-        jButton11.setVisible(true); // DESCUENTO
-        jButton12.setVisible(true); // ELIMINAR
+        // El admin ve su barra completa de herramientas
+        jButton1.setVisible(true); // VENTAS
+        jButton4.setVisible(true); // PRODUCTOS
+        jButton5.setVisible(true); // INVENTARIO
+        jButton8.setVisible(true); // CORTE
+        jButton9.setVisible(true); // USUARIO
     } else {
-        // EL USUARIO EMPLEADO
-        jButton8.setVisible(false); // No ve Corte
-        jButton9.setVisible(false); // No ve Usuario
+        // El empleado solo navega entre Ventas e Inventario
+        jButton1.setVisible(true); 
+        jButton5.setVisible(true);
         
-        // PERO SÍ TIENE ACCESO A ESTOS (Tu nueva petición):
-        jButton11.setVisible(true); // DESCUENTO
-        jButton12.setVisible(true); // ELIMINAR
+        jButton4.setVisible(false);
+        jButton8.setVisible(false);
+        jButton9.setVisible(false);
     }
 
-    // El botón COBRAR y el botón de REGRESAR siempre visibles
+    // Lógica para los botones de acción (Abajo)
+    // Según tu petición, AMBOS pueden hacer estas acciones:
+    jButton11.setVisible(true); // DESCUENTO
+    jButton12.setVisible(true); // ELIMINAR
     jButton14.setVisible(true); // COBRAR
-    jButton15.setVisible(true); // REGRESAR
-    
-    // Ocultar el que ya no usamos
+
+    // Siempre ocultamos los que no tienen función asignada todavía
+    jButton2.setVisible(false);
+    jButton3.setVisible(false);
+    jButton6.setVisible(false);
+    jButton7.setVisible(false);
     jButton13.setVisible(false); // ASIGNAR CLIENTE
 }
 
