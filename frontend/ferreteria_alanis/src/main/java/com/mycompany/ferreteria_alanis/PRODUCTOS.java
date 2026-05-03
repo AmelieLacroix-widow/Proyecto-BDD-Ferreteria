@@ -61,21 +61,29 @@ public class PRODUCTOS extends javax.swing.JFrame {
     }
 
     private void configurarPermisos() {
-    // 1. Ocultar los botones del menú superior que no se usan (igual que en MenuPrincipal)
+  // 1. FORZAR TEXTOS PARA QUE COINCIDAN CON EL MENÚ PRINCIPAL
+    jButton8.setText("CORTE");
+    jButton9.setText("USUARIO");
+
+    // 2. Ocultar los botones del menú superior que no se usan en esta pantalla
     jButton2.setVisible(false); // CRÉDITOS
     jButton3.setVisible(false); // CLIENTES
     jButton6.setVisible(false); // PROVEEDORES
     jButton7.setVisible(false); // COMPRAS
 
-    // 2. Configurar botones según el ROL
-    if (!"ADMIN".equalsIgnoreCase(rol)) {
-        // Si no es ADMIN, ocultamos botones sensibles de la gestión de productos
-        jButton11.setVisible(false); // Botón Modificar
-        jButton12.setVisible(false); // Botón Eliminar
+    // 3. Configurar visibilidad por ROL
+    if ("ADMIN".equalsIgnoreCase(rol)) {
+        // El Admin sí ve estos botones con sus nombres nuevos
+        jButton8.setVisible(true);  // CORTE
+        jButton9.setVisible(true);  // USUARIO
+    } else {
+        // El empleado no ve funciones administrativas
+        jButton8.setVisible(false); 
+        jButton9.setVisible(false);
         
-        // También los del menú superior si corresponde
-        jButton8.setVisible(false);  // REPORTES/CORTE
-        jButton9.setVisible(false);  // CONFIGURACIÓN/USUARIO
+        // También ocultamos Modificar y Eliminar para empleados
+        jButton11.setVisible(false); 
+        jButton12.setVisible(false);
     }
 }
 
