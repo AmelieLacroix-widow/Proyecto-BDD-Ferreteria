@@ -61,42 +61,42 @@ public class PRODUCTOS extends javax.swing.JFrame {
     }
 
     private void configurarPermisos() {
-  // 1. FORZAR TEXTOS DEL MENÚ SUPERIOR
+  // 1. Textos de soporte
     jButton8.setText("CORTE");
     jButton9.setText("USUARIO");
+    jButton11.setText("DESCUENTO");
 
-    // 2. RECONFIGURACIÓN DE BOTONES INFERIORES (La "Limpieza")
-    jButton11.setText("DESCUENTO");       // Antes era 'Modificar'
-    jButton12.setText("ELIMINAR");        // Se mantiene
-    jButton13.setVisible(false);          // Ocultamos 'Asignar Cliente'
-    jButton14.setText("COBRAR");          // Se mantiene
-
-    // 3. Ocultar botones no usados del menú superior
-    jButton2.setVisible(false); // CRÉDITOS
-    jButton3.setVisible(false); // CLIENTES
-    jButton6.setVisible(false); // PROVEEDORES
-    jButton7.setVisible(false); // COMPRAS
-
-    // 4. LÓGICA DE SEGURIDAD POR ROL
+    // 2. Visibilidad del Menú Superior (Igual que en el Principal)
+    jButton2.setVisible(false); 
+    jButton3.setVisible(false);
+    jButton4.setVisible(false); 
+    jButton6.setVisible(false);
+    jButton7.setVisible(false);
+    
+    // 3. Lógica de botones superiores e inferiores por ROL
     if ("ADMIN".equalsIgnoreCase(rol)) {
-        // El Admin ve todo lo habilitado
         jButton8.setVisible(true);  // CORTE
         jButton9.setVisible(true);  // USUARIO
+        
+        // El admin siempre tiene acceso a las acciones
         jButton11.setVisible(true); // DESCUENTO
         jButton12.setVisible(true); // ELIMINAR
     } else {
-        // El Empleado solo puede ver lo básico
-        jButton8.setVisible(false); 
-        jButton9.setVisible(false);
+        // EL USUARIO EMPLEADO
+        jButton8.setVisible(false); // No ve Corte
+        jButton9.setVisible(false); // No ve Usuario
         
-        // Generalmente, un empleado no debería poder eliminar productos o dar descuentos 
-        // sin supervisión, así que los ocultamos por seguridad:
-        jButton11.setVisible(false); // DESCUENTO
-        jButton12.setVisible(false); // ELIMINAR
+        // PERO SÍ TIENE ACCESO A ESTOS (Tu nueva petición):
+        jButton11.setVisible(true); // DESCUENTO
+        jButton12.setVisible(true); // ELIMINAR
     }
+
+    // El botón COBRAR y el botón de REGRESAR siempre visibles
+    jButton14.setVisible(true); // COBRAR
+    jButton15.setVisible(true); // REGRESAR
     
-    // El botón de COBRAR (jButton14) se queda visible para ambos (Admin y Empleado)
-    jButton14.setVisible(true);
+    // Ocultar el que ya no usamos
+    jButton13.setVisible(false); // ASIGNAR CLIENTE
 }
 
     // -------------------------------------------------------------------------

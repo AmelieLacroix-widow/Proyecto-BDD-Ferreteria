@@ -171,32 +171,27 @@ public class MenuPrincipal extends javax.swing.JFrame {
 
     private void configurarMenu() {
 
-    // Texto de botones (SIEMPRE)
-    jButton1.setText("VENTAS");
-    jButton4.setText("PRODUCTOS");
-    jButton5.setText("INVENTARIO");
-    jButton8.setText("CORTE");
-    jButton9.setText("USUARIO");
-
-    // Primero ocultas todo lo no usado
+    // 1. Primero ocultamos ABSOLUTAMENTE TODO lo que no sea Ventas o Inventario
     jButton2.setVisible(false); // CRÉDITOS
     jButton3.setVisible(false); // CLIENTES
+    jButton4.setVisible(false); // PRODUCTOS (La lista general)
     jButton6.setVisible(false); // PROVEEDORES
     jButton7.setVisible(false); // COMPRAS
+    jButton8.setVisible(false); // CORTE
+    jButton9.setVisible(false); // USUARIO
 
-    // Ahora defines por rol lo que SÍ se ve
+    // 2. Ahora habilitamos según el rol
     if ("ADMIN".equalsIgnoreCase(rol)) {
-
-        jButton4.setVisible(true);  // PRODUCTOS
-        jButton8.setVisible(true);  // CORTE
-        jButton9.setVisible(true);  // USUARIO
-
-    } else {
-
-        jButton4.setVisible(true);  // PRODUCTOS (si empleados lo ven)
-        jButton8.setVisible(false); // CORTE
-        jButton9.setVisible(false); // USUARIO
+        // El admin recupera la vista de todo lo necesario
+        jButton4.setVisible(true); // PRODUCTOS
+        jButton8.setVisible(true); // CORTE
+        jButton9.setVisible(true); // USUARIO
+        // (Agrega aquí otros que el admin sí deba ver)
     }
+
+    // 3. Botones que AMBOS ven siempre (según tu petición)
+    jButton1.setVisible(true); // VENTAS
+    jButton5.setVisible(true); // INVENTARIO
 }
 
 
