@@ -30,6 +30,7 @@ public class PRODUCTOS extends javax.swing.JFrame {
         this.rol = rol;
         initComponents();
         setLocationRelativeTo(null);
+        configurarPermisos();
         configurarTabla();
         cargarTodosLosProductos();
     }
@@ -58,6 +59,25 @@ public class PRODUCTOS extends javax.swing.JFrame {
             }
         });
     }
+
+    private void configurarPermisos() {
+    // 1. Ocultar los botones del menú superior que no se usan (igual que en MenuPrincipal)
+    jButton2.setVisible(false); // CRÉDITOS
+    jButton3.setVisible(false); // CLIENTES
+    jButton6.setVisible(false); // PROVEEDORES
+    jButton7.setVisible(false); // COMPRAS
+
+    // 2. Configurar botones según el ROL
+    if (!"ADMIN".equalsIgnoreCase(rol)) {
+        // Si no es ADMIN, ocultamos botones sensibles de la gestión de productos
+        jButton11.setVisible(false); // Botón Modificar
+        jButton12.setVisible(false); // Botón Eliminar
+        
+        // También los del menú superior si corresponde
+        jButton8.setVisible(false);  // REPORTES/CORTE
+        jButton9.setVisible(false);  // CONFIGURACIÓN/USUARIO
+    }
+}
 
     // -------------------------------------------------------------------------
     // Cargar todos los productos al abrir la pantalla
