@@ -45,7 +45,7 @@ Aquí se encuentra:
 
 ## 🔹 frontend/
 
-Contendrá la aplicación de escritorio (JavaFX).
+Contendrá la aplicación de escritorio (Swing).
 
 👉 Aquí se desarrollará:
 
