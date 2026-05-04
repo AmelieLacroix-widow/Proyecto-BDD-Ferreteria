@@ -413,118 +413,24 @@ public class VENTAS extends JFrame {
             protected void done() {
                 try {
                     ProductoDTO p = get();
-                    BigDecimal precioOriginal = p.getPrecioVentaLista() != null
+                    BigDecimal precio = p.getPrecioVentaLista() != null
                         ? p.getPrecioVentaLista() : BigDecimal.ZERO;
+                    BigDecimal cantidad   = BigDecimal.ONE;
+                    BigDecimal importe    = precio;
                     BigDecimal existencia = p.getExistencia() != null
                         ? p.getExistencia() : BigDecimal.ZERO;
 
-                    // ── Ventana pequeña de confirmación ──────────────────
-                    JDialog dlgProd = new JDialog(VENTAS.this, "Producto", true);
-                    dlgProd.setSize(370, 215);
-                    dlgProd.setLocationRelativeTo(VENTAS.this);
-                    dlgProd.setLayout(new BorderLayout());
-
-                    JLabel headerDlg = new JLabel("  Producto");
-                    headerDlg.setOpaque(true);
-                    headerDlg.setBackground(COLOR_NARANJA);
-                    headerDlg.setFont(new Font("Arial", Font.BOLD, 14));
-                    headerDlg.setPreferredSize(new Dimension(0, 30));
-                    dlgProd.add(headerDlg, BorderLayout.NORTH);
-
-                    JPanel body = new JPanel(new GridBagLayout());
-                    body.setBackground(COLOR_FONDO);
-                    body.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
-                    GridBagConstraints gc = new GridBagConstraints();
-                    gc.insets = new Insets(4, 4, 4, 4);
-                    gc.anchor = GridBagConstraints.WEST;
-                    gc.fill   = GridBagConstraints.HORIZONTAL;
-
-                    // Descripción
-                    gc.gridx = 0; gc.gridy = 0; gc.gridwidth = 3; gc.weightx = 1;
-                    body.add(new JLabel("Descripción del Producto:"), gc);
-                    gc.gridy = 1;
-                    JTextField txtDescDlg = new JTextField(p.getDescripcion());
-                    txtDescDlg.setEditable(false);
-                    txtDescDlg.setBackground(Color.WHITE);
-                    body.add(txtDescDlg, gc);
-
-                    // Etiquetas Cantidad y Precio
-                    gc.gridy = 2; gc.gridwidth = 1; gc.weightx = 1;
-                    gc.gridx = 0;
-                    body.add(new JLabel("Cantidad:"), gc);
-                    gc.gridx = 1; gc.weightx = 0;
-                    body.add(new JLabel(""), gc);
-                    gc.gridx = 2; gc.weightx = 1;
-                    body.add(new JLabel("Precio con impuestos:"), gc);
-
-                    // Campos Cantidad × Precio
-                    gc.gridy = 3; gc.gridx = 0; gc.weightx = 1;
-                    JTextField txtCantDlg = new JTextField("1.00", 6);
-                    body.add(txtCantDlg, gc);
-                    gc.gridx = 1; gc.weightx = 0;
-                    body.add(new JLabel("X"), gc);
-                    gc.gridx = 2; gc.weightx = 1;
-                    BigDecimal precioConIva = precioOriginal.multiply(new BigDecimal("1.16"))
-                        .setScale(2, RoundingMode.HALF_UP);
-                    JTextField txtPrecioDlg = new JTextField(
-                        "$" + precioConIva.toPlainString(), 8);
-                    txtPrecioDlg.setEditable(false);
-                    txtPrecioDlg.setBackground(Color.WHITE);
-                    body.add(txtPrecioDlg, gc);
-
-                    // IVA checkbox + botón Aceptar
-                    gc.gridy = 4; gc.gridx = 0; gc.weightx = 1; gc.gridwidth = 2;
-                    JCheckBox chkIva = new JCheckBox("IVA (16%)", true);
-                    chkIva.setBackground(COLOR_FONDO);
-                    body.add(chkIva, gc);
-                    gc.gridx = 2; gc.gridwidth = 1;
-                    JButton btnAceptarDlg = new JButton("Aceptar");
-                    btnAceptarDlg.setBackground(COLOR_NARANJA);
-                    btnAceptarDlg.setFont(new Font("Arial", Font.BOLD, 13));
-                    body.add(btnAceptarDlg, gc);
-
-                    // Actualizar precio al cambiar IVA
-                    chkIva.addActionListener(ev -> {
-                        BigDecimal mostrar = chkIva.isSelected()
-                            ? precioOriginal.multiply(new BigDecimal("1.16")).setScale(2, RoundingMode.HALF_UP)
-                            : precioOriginal.setScale(2, RoundingMode.HALF_UP);
-                        txtPrecioDlg.setText("$" + mostrar.toPlainString());
+                    modelActivo.addRow(new Object[]{
+                        p.getCodigoBarras(),
+                        p.getDescripcion(),
+                        precio,
+                        cantidad,
+                        importe,
+                        existencia,
+                        "0%"         // descuento inicial
                     });
-
-                    dlgProd.add(body, BorderLayout.CENTER);
-
-                    // Aceptar → agregar al ticket con la cantidad y precio indicados
-                    btnAceptarDlg.addActionListener(ev -> {
-                        try {
-                            BigDecimal cant = new BigDecimal(txtCantDlg.getText().trim());
-                            if (cant.compareTo(BigDecimal.ZERO) <= 0) throw new NumberFormatException();
-                            BigDecimal precioFinal = chkIva.isSelected()
-                                ? precioOriginal.multiply(new BigDecimal("1.16"))
-                                    .setScale(2, RoundingMode.HALF_UP)
-                                : precioOriginal.setScale(2, RoundingMode.HALF_UP);
-                            BigDecimal importe = precioFinal.multiply(cant)
-                                .setScale(2, RoundingMode.HALF_UP);
-                            modelActivo.addRow(new Object[]{
-                                p.getCodigoBarras(),
-                                p.getDescripcion(),
-                                precioFinal,
-                                cant,
-                                importe,
-                                existencia,
-                                "0%"
-                            });
-                            actualizarTotal(modelActivo);
-                            txtCodigo.setText("");
-                            dlgProd.dispose();
-                        } catch (NumberFormatException ex2) {
-                            JOptionPane.showMessageDialog(dlgProd,
-                                "Ingresa una cantidad válida mayor a 0.",
-                                "Cantidad inválida", JOptionPane.WARNING_MESSAGE);
-                        }
-                    });
-
-                    dlgProd.setVisible(true);
-
+                    actualizarTotal(modelActivo);
+                    txtCodigo.setText("");
                 } catch (Exception ex) {
                     LOGGER.log(Level.WARNING, "Producto no encontrado", ex);
                     JOptionPane.showMessageDialog(VENTAS.this,
@@ -716,12 +622,13 @@ public class VENTAS extends JFrame {
 
     // ─────────────────────────────────────────────────────────────────────────
     // Diálogo de cobro con métodos: Efectivo, Tarjeta, Mixto
+    // Flujo real: POST /tickets → POST /tickets/{folio}/detalle (x renglon) → POST /tickets/{folio}/pago
     // ─────────────────────────────────────────────────────────────────────────
 
     private void mostrarDialogoCobro() {
         DefaultTableModel modelActivo = getModeloActivo();
 
-        // Calcular total e ítems
+        // ── Calcular totales ─────────────────────────────────────────────
         java.math.BigDecimal totalVenta = java.math.BigDecimal.ZERO;
         int totalArticulos = 0;
         for (int i = 0; i < modelActivo.getRowCount(); i++) {
@@ -736,12 +643,27 @@ public class VENTAS extends JFrame {
         final java.math.BigDecimal totalFinal = totalVenta;
         final int artsFinal = totalArticulos;
 
+        // Snapshot de renglones para el SwingWorker (captura antes de cerrar diálogo)
+        record Renglon(String codigo, java.math.BigDecimal precio,
+                       java.math.BigDecimal cantidad, java.math.BigDecimal importe,
+                       java.math.BigDecimal descuento) {}
+        java.util.List<Renglon> renglones = new java.util.ArrayList<>();
+        for (int i = 0; i < modelActivo.getRowCount(); i++) {
+            renglones.add(new Renglon(
+                modelActivo.getValueAt(i, COL_CODIGO).toString(),
+                parseBD(modelActivo.getValueAt(i, COL_PRECIO)),
+                parseBD(modelActivo.getValueAt(i, COL_CANT)),
+                parseBD(modelActivo.getValueAt(i, COL_IMPORTE)),
+                java.math.BigDecimal.ZERO   // descuento por producto = 0 por ahora
+            ));
+        }
+
+        // ── Construir diálogo ────────────────────────────────────────────
         JDialog dlg = new JDialog(this, "Ticket", true);
         dlg.setSize(520, 300);
         dlg.setLocationRelativeTo(this);
         dlg.setLayout(new BorderLayout());
 
-        // ── Header naranja ───────────────────────────────────────────────
         JLabel header = new JLabel("Ticket", SwingConstants.LEFT);
         header.setOpaque(true);
         header.setBackground(COLOR_NARANJA);
@@ -749,7 +671,6 @@ public class VENTAS extends JFrame {
         header.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
         dlg.add(header, BorderLayout.NORTH);
 
-        // ── Panel izquierdo (monto + métodos + campos dinámicos) ────────
         JPanel izq = new JPanel();
         izq.setLayout(new BoxLayout(izq, BoxLayout.Y_AXIS));
         izq.setBackground(new Color(220, 220, 220));
@@ -761,13 +682,11 @@ public class VENTAS extends JFrame {
         izq.add(lblMonto);
         izq.add(Box.createVerticalStrut(12));
 
-        // Botones de método
         JPanel panelMetodos = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         panelMetodos.setOpaque(false);
         JButton btnEfectivo = new JButton("Efectivo");
         JButton btnTarjeta  = new JButton("Tarjeta");
         JButton btnMixto    = new JButton("Mixto");
-
         Color inactivo = new Color(180, 180, 180);
         for (JButton b : new JButton[]{btnEfectivo, btnTarjeta, btnMixto}) {
             b.setBackground(inactivo);
@@ -779,13 +698,11 @@ public class VENTAS extends JFrame {
         izq.add(panelMetodos);
         izq.add(Box.createVerticalStrut(12));
 
-        // Panel dinámico para campos según método
         JPanel panelCampos = new JPanel();
         panelCampos.setOpaque(false);
         panelCampos.setLayout(new BoxLayout(panelCampos, BoxLayout.Y_AXIS));
         izq.add(panelCampos);
 
-        // ── Panel derecho (botones Cobrar/Cancelar + total artículos) ───
         JPanel der = new JPanel();
         der.setLayout(new BoxLayout(der, BoxLayout.Y_AXIS));
         der.setBackground(new Color(200, 200, 200));
@@ -796,6 +713,7 @@ public class VENTAS extends JFrame {
         btnCobrarFinal.setAlignmentX(Component.CENTER_ALIGNMENT);
         btnCobrarFinal.setMaximumSize(new Dimension(120, 35));
         btnCobrarFinal.setFont(new Font("Arial", Font.BOLD, 13));
+        btnCobrarFinal.setBackground(new Color(102, 204, 0));
 
         JButton btnCancelarDlg = new JButton("Cancelar");
         btnCancelarDlg.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -806,7 +724,6 @@ public class VENTAS extends JFrame {
         JLabel lblArtsLbl = new JLabel("Total de artículos:");
         lblArtsLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
         lblArtsLbl.setFont(new Font("Arial", Font.PLAIN, 13));
-
         JLabel lblArtsVal = new JLabel(String.valueOf(artsFinal));
         lblArtsVal.setAlignmentX(Component.CENTER_ALIGNMENT);
         lblArtsVal.setFont(new Font("Arial", Font.BOLD, 28));
@@ -821,20 +738,149 @@ public class VENTAS extends JFrame {
         dlg.add(izq, BorderLayout.CENTER);
         dlg.add(der, BorderLayout.EAST);
 
-        // ── Lógica de métodos de pago ────────────────────────────────────
-        // Estado compartido
-        final String[] metodoActual = {null};
+        // ── Estado compartido de pago ────────────────────────────────────
+        // Usamos arrays de 1 elemento para poder mutar desde lambdas
+        final String[]                   metodoActual  = {null};
+        final java.math.BigDecimal[]     montoEfectivo = {java.math.BigDecimal.ZERO};
+        final java.math.BigDecimal[]     pagoCon       = {java.math.BigDecimal.ZERO};
+        final java.math.BigDecimal[]     cambio        = {java.math.BigDecimal.ZERO};
+        final java.math.BigDecimal[]     montoTarjeta  = {java.math.BigDecimal.ZERO};
+        final String[]                   refTarjeta    = {""};
+        final java.math.BigDecimal[]     montoTransf   = {java.math.BigDecimal.ZERO};
 
+        // ── Lógica de cobro real ─────────────────────────────────────────
+        // Capturamos la pestaña activa ANTES de que el worker cierre el diálogo
+        final int tabActiva = ticketPane.getSelectedIndex();
+
+        Runnable ejecutarCobro = () -> {
+            if (metodoActual[0] == null) {
+                JOptionPane.showMessageDialog(dlg, "Selecciona un método de pago.", "Aviso", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            btnCobrarFinal.setEnabled(false);
+            btnCobrarFinal.setText("Procesando…");
+
+            // Obtener el idUsuario de la sesión actual (necesario para el Ticket)
+            // Se pasa como objeto anidado { "idUsuario": X }
+            // Si SesionActual no guarda el id, usaremos un endpoint de login para obtenerlo
+            // Por ahora lo leemos buscando por nombre de usuario
+            new SwingWorker<Integer, String>() {
+
+                @Override
+                protected Integer doInBackground() throws Exception {
+                    // ── Paso 0: obtener idUsuario de la sesión ───────────
+                    publish("Verificando usuario…");
+                    int idUsuario = SesionActual.getIdUsuario();
+                    if (idUsuario == 0) {
+                        throw new Exception("No se encontró el ID del usuario en la sesión. Vuelve a iniciar sesión.");
+                    }
+
+                    // ── Paso 1: crear el Ticket ──────────────────────────
+                    publish("Creando ticket…");
+                    java.time.LocalDate hoy   = java.time.LocalDate.now();
+                    java.time.LocalTime ahora = java.time.LocalTime.now();
+                    // totalBruto = totalNeto (sin descuento global por ahora)
+                    String jsonTicket = "{"
+                        + "\"tipoDocumento\":\"Ticket\","
+                        + "\"estadoDocumento\":\"Pagado\","
+                        + "\"fechaTransaccion\":\"" + hoy + "\","
+                        + "\"horaTransaccion\":\"" + ahora.toString().substring(0, 8) + "\","
+                        + "\"totalBruto\":"          + totalFinal + ","
+                        + "\"porcentajeDescuento\":0,"
+                        + "\"totalDescuento\":0,"
+                        + "\"totalNeto\":"            + totalFinal + ","
+                        + "\"usuario\":{\"idUsuario\":" + idUsuario + "}"
+                        + "}";
+                    String respTicket = api.post("/tickets", jsonTicket);
+                    com.fasterxml.jackson.databind.JsonNode nTicket = mapper.readTree(respTicket);
+                    int folio = nTicket.path("folioTicket").asInt();
+                    if (folio == 0) throw new Exception("El backend no devolvió un folio válido.");
+
+                    // ── Paso 2: registrar cada renglón ───────────────────
+                    publish("Registrando productos…");
+                    for (var r : renglones) {
+                        String jsonDet = "{"
+                            + "\"codigoBarras\":\"" + r.codigo() + "\","
+                            + "\"cantidad\":"        + r.cantidad() + ","
+                            + "\"precioUnitarioVenta\":" + r.precio() + ","
+                            + "\"importe\":"         + r.importe() + ","
+                            + "\"descuentoProducto\":" + r.descuento()
+                            + "}";
+                        api.post("/tickets/" + folio + "/detalle", jsonDet);
+                    }
+
+                    // ── Paso 3: registrar el pago ────────────────────────
+                    publish("Registrando pago…");
+                    // Construir JSON de Pago con los campos NOT NULL del modelo
+                    // (todos los montos que no aplican van a 0)
+                    java.math.BigDecimal cero = java.math.BigDecimal.ZERO;
+                    String jsonPago = "{"
+                        + "\"metodoPago\":\""          + metodoActual[0]    + "\","
+                        + "\"montoEfectivo\":"          + montoEfectivo[0]   + ","
+                        + "\"pagoCon\":"                + pagoCon[0]         + ","
+                        + "\"cambio\":"                 + cambio[0]          + ","
+                        + "\"montoTarjeta\":"           + montoTarjeta[0]    + ","
+                        + "\"referenciaTarjeta\":\""    + refTarjeta[0]      + "\","
+                        + "\"voucherTarjeta\":false,"
+                        + "\"montoTransferencia\":"     + montoTransf[0]     + ","
+                        + "\"referenciaTransferencia\":\"\","
+                        + "\"voucherTransferencia\":false,"
+                        + "\"montoCheque\":"            + cero               + ","
+                        + "\"referenciaCheque\":\"\","
+                        + "\"montoCredito\":"           + cero
+                        + "}";
+                    api.post("/tickets/" + folio + "/pago", jsonPago);
+
+                    return folio;
+                }
+
+                @Override
+                protected void process(java.util.List<String> chunks) {
+                    btnCobrarFinal.setText(chunks.getLast());
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        int folio = get();
+                        dlg.dispose();
+                        // Limpiar la pestaña del ticket que se cobró
+                        modelActivo.setRowCount(0);
+                        actualizarTotal(modelActivo);
+                        JOptionPane.showMessageDialog(VENTAS.this,
+                            "✓ Venta registrada  —  Folio: " + folio,
+                            "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                    } catch (Exception ex) {
+                        LOGGER.log(Level.SEVERE, "Error al cobrar", ex);
+                        btnCobrarFinal.setEnabled(true);
+                        btnCobrarFinal.setText("Cobrar");
+                        JOptionPane.showMessageDialog(dlg,
+                            "Error al registrar la venta:\n" + ex.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }.execute();
+        };
+
+        // ── Campos dinámicos según método ────────────────────────────────
         Runnable actualizarCampos = () -> {
             panelCampos.removeAll();
+            // Limpiar listeners previos del botón Cobrar reaplicando uno nuevo
+            for (var l : btnCobrarFinal.getActionListeners()) btnCobrarFinal.removeActionListener(l);
+            btnCobrarFinal.addActionListener(ev -> ejecutarCobro.run());
+
             String m = metodoActual[0];
 
             if ("efectivo".equals(m)) {
+                montoTarjeta[0] = java.math.BigDecimal.ZERO;
+                montoTransf[0]  = java.math.BigDecimal.ZERO;
+                refTarjeta[0]   = "";
+
                 JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
                 row1.setOpaque(false);
                 row1.add(new JLabel("Pago con:"));
                 JTextField txtPago = new JTextField(8);
-                txtPago.setText("$" + totalFinal.setScale(2, java.math.RoundingMode.HALF_UP));
+                txtPago.setText(totalFinal.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString());
                 row1.add(txtPago);
                 panelCampos.add(row1);
 
@@ -842,51 +888,58 @@ public class VENTAS extends JFrame {
                 lblCambio.setFont(new Font("Arial", Font.BOLD, 13));
                 panelCampos.add(lblCambio);
 
-                // Actualizar cambio al escribir
                 txtPago.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
                     void recalc() {
                         try {
-                            String txt = txtPago.getText().replace("$", "").replace(",", "").trim();
-                            java.math.BigDecimal pagado = new java.math.BigDecimal(txt);
-                            java.math.BigDecimal cambio = pagado.subtract(totalFinal);
-                            if (cambio.compareTo(java.math.BigDecimal.ZERO) >= 0) {
+                            java.math.BigDecimal pagado = parseBDStr(txtPago.getText());
+                            java.math.BigDecimal diff   = pagado.subtract(totalFinal);
+                            montoEfectivo[0] = totalFinal;
+                            pagoCon[0]       = pagado;
+                            cambio[0]        = diff.max(java.math.BigDecimal.ZERO);
+                            if (diff.compareTo(java.math.BigDecimal.ZERO) >= 0) {
                                 lblCambio.setForeground(Color.BLACK);
-                                lblCambio.setText("Su cambio es:  $" + cambio.setScale(2, java.math.RoundingMode.HALF_UP));
+                                lblCambio.setText("Su cambio es:  $"
+                                    + diff.setScale(2, java.math.RoundingMode.HALF_UP));
                             } else {
                                 lblCambio.setForeground(Color.RED);
-                                lblCambio.setText("Restante:  $" + cambio.abs().setScale(2, java.math.RoundingMode.HALF_UP));
+                                lblCambio.setText("Restante:  $"
+                                    + diff.abs().setScale(2, java.math.RoundingMode.HALF_UP));
                             }
-                        } catch (Exception ignored) {
-                            lblCambio.setText("Su cambio es:  $—");
-                        }
+                        } catch (Exception ignored) {}
                     }
                     public void insertUpdate(javax.swing.event.DocumentEvent e) { recalc(); }
                     public void removeUpdate(javax.swing.event.DocumentEvent e) { recalc(); }
                     public void changedUpdate(javax.swing.event.DocumentEvent e) { recalc(); }
                 });
-
-                btnCobrarFinal.addActionListener(ev -> {
-                    JOptionPane.showMessageDialog(dlg, "Venta registrada correctamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-                    dlg.dispose();
-                });
+                // Valores por defecto al seleccionar efectivo
+                montoEfectivo[0] = totalFinal;
+                pagoCon[0]       = totalFinal;
+                cambio[0]        = java.math.BigDecimal.ZERO;
 
             } else if ("tarjeta".equals(m)) {
+                montoEfectivo[0] = java.math.BigDecimal.ZERO;
+                pagoCon[0]       = java.math.BigDecimal.ZERO;
+                cambio[0]        = java.math.BigDecimal.ZERO;
+                montoTarjeta[0]  = totalFinal;
+                montoTransf[0]   = java.math.BigDecimal.ZERO;
+
                 JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
                 row1.setOpaque(false);
-                row1.add(new JLabel("Referencia"));
-                panelCampos.add(row1);
-                JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT));
-                row2.setOpaque(false);
+                row1.add(new JLabel("Referencia:"));
                 JTextField txtRef = new JTextField(18);
-                row2.add(txtRef);
-                panelCampos.add(row2);
-
-                btnCobrarFinal.addActionListener(ev -> {
-                    JOptionPane.showMessageDialog(dlg, "Venta registrada correctamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-                    dlg.dispose();
+                txtRef.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+                    void upd() { refTarjeta[0] = txtRef.getText().trim(); }
+                    public void insertUpdate(javax.swing.event.DocumentEvent e) { upd(); }
+                    public void removeUpdate(javax.swing.event.DocumentEvent e) { upd(); }
+                    public void changedUpdate(javax.swing.event.DocumentEvent e) { upd(); }
                 });
+                row1.add(txtRef);
+                panelCampos.add(row1);
 
             } else if ("mixto".equals(m)) {
+                montoTransf[0] = java.math.BigDecimal.ZERO;
+                refTarjeta[0]  = "";
+
                 JPanel rowEf = new JPanel(new FlowLayout(FlowLayout.LEFT));
                 rowEf.setOpaque(false);
                 rowEf.add(new JLabel("Efectivo:"));
@@ -901,25 +954,31 @@ public class VENTAS extends JFrame {
                 rowTj.add(txtTarjeta);
                 panelCampos.add(rowTj);
 
-                JLabel lblRestante = new JLabel("Restante: $" + totalFinal.setScale(2, java.math.RoundingMode.HALF_UP));
+                JLabel lblRestante = new JLabel("Restante: $"
+                    + totalFinal.setScale(2, java.math.RoundingMode.HALF_UP));
                 lblRestante.setForeground(Color.RED);
                 lblRestante.setFont(new Font("Arial", Font.BOLD, 13));
                 panelCampos.add(lblRestante);
 
                 javax.swing.event.DocumentListener dlMixto = new javax.swing.event.DocumentListener() {
                     void recalc() {
-                        try {
-                            java.math.BigDecimal ef = parseBDStr(txtEfectivo.getText());
-                            java.math.BigDecimal tj = parseBDStr(txtTarjeta.getText());
-                            java.math.BigDecimal rest = totalFinal.subtract(ef).subtract(tj);
-                            if (rest.compareTo(java.math.BigDecimal.ZERO) >= 0) {
-                                lblRestante.setForeground(Color.RED);
-                                lblRestante.setText("Restante: $" + rest.setScale(2, java.math.RoundingMode.HALF_UP));
-                            } else {
-                                lblRestante.setForeground(new Color(0, 150, 0));
-                                lblRestante.setText("Cambio: $" + rest.abs().setScale(2, java.math.RoundingMode.HALF_UP));
-                            }
-                        } catch (Exception ignored) {}
+                        java.math.BigDecimal ef   = parseBDStr(txtEfectivo.getText());
+                        java.math.BigDecimal tj   = parseBDStr(txtTarjeta.getText());
+                        java.math.BigDecimal rest = totalFinal.subtract(ef).subtract(tj);
+                        montoEfectivo[0] = ef;
+                        montoTarjeta[0]  = tj;
+                        pagoCon[0]       = ef;
+                        cambio[0]        = rest.compareTo(java.math.BigDecimal.ZERO) < 0
+                                           ? rest.abs() : java.math.BigDecimal.ZERO;
+                        if (rest.compareTo(java.math.BigDecimal.ZERO) >= 0) {
+                            lblRestante.setForeground(Color.RED);
+                            lblRestante.setText("Restante: $"
+                                + rest.setScale(2, java.math.RoundingMode.HALF_UP));
+                        } else {
+                            lblRestante.setForeground(new Color(0, 150, 0));
+                            lblRestante.setText("Cambio: $"
+                                + rest.abs().setScale(2, java.math.RoundingMode.HALF_UP));
+                        }
                     }
                     public void insertUpdate(javax.swing.event.DocumentEvent e) { recalc(); }
                     public void removeUpdate(javax.swing.event.DocumentEvent e) { recalc(); }
@@ -927,11 +986,6 @@ public class VENTAS extends JFrame {
                 };
                 txtEfectivo.getDocument().addDocumentListener(dlMixto);
                 txtTarjeta.getDocument().addDocumentListener(dlMixto);
-
-                btnCobrarFinal.addActionListener(ev -> {
-                    JOptionPane.showMessageDialog(dlg, "Venta registrada correctamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-                    dlg.dispose();
-                });
             }
 
             panelCampos.revalidate();

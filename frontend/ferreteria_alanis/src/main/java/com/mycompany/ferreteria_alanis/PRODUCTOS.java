@@ -62,10 +62,7 @@ public class PRODUCTOS extends JFrame {
     private JTextField txtProvNombre;
     private JTextField txtProvTelefono;
     private JTextField txtProvCorreo;
-    private JTextField txtProvDomicilio;
-    private JTextField txtProvColonia;
-    private JTextField txtProvMunicipio;
-    private JTextField txtProvCp;
+    private JTextField txtProvDireccion;
     private JTextField txtProvNotas;
     private Integer provIdSeleccionado = null;
 
@@ -670,10 +667,7 @@ public class PRODUCTOS extends JFrame {
         txtProvNombre    = new JTextField();
         txtProvTelefono  = new JTextField();
         txtProvCorreo    = new JTextField();
-        txtProvDomicilio = new JTextField();
-        txtProvColonia   = new JTextField();
-        txtProvMunicipio = new JTextField();
-        txtProvCp        = new JTextField();
+        txtProvDireccion = new JTextField();
         txtProvNotas     = new JTextField();
 
         JPanel camposProv = new JPanel(new GridBagLayout());
@@ -683,12 +677,9 @@ public class PRODUCTOS extends JFrame {
         gp.fill   = GridBagConstraints.HORIZONTAL;
         gp.anchor = GridBagConstraints.WEST;
 
-        String[] labsProv = {"Nombre:", "Teléfono:", "Correo electrónico:",
-                             "Domicilio:", "Colonia:", "Municipio / Estado:",
-                             "Código postal:", "Notas:"};
+        String[] labsProv = {"Nombre:", "Teléfono:", "Correo:", "Dirección:", "Notas:"};
         JTextField[] camposArr = {txtProvNombre, txtProvTelefono, txtProvCorreo,
-                                  txtProvDomicilio, txtProvColonia, txtProvMunicipio,
-                                  txtProvCp, txtProvNotas};
+                                  txtProvDireccion, txtProvNotas};
         for (int i = 0; i < labsProv.length; i++) {
             gp.gridx = 0; gp.gridy = i; gp.weightx = 0;
             camposProv.add(new JLabel(labsProv[i]), gp);
@@ -1091,23 +1082,17 @@ public class PRODUCTOS extends JFrame {
                     provIdSeleccionado = n.path("idProveedor").asInt();
                     txtProvNombre.setText(n.path("nombreProveedor").asText());
                     txtProvTelefono.setText(n.path("telefono").asText());
-                    txtProvCorreo.setText(n.path("correoElectronico").asText());
-                    txtProvDomicilio.setText(n.path("domicilio").asText());
-                    txtProvColonia.setText(n.path("colonia").asText());
-                    txtProvMunicipio.setText(n.path("municipioEstado").asText());
-                    txtProvCp.setText(n.path("codigoPostal").asText());
+                    txtProvCorreo.setText(n.path("correo").asText());
+                    txtProvDireccion.setText(n.path("direccion").asText());
                     txtProvNotas.setText(n.path("notas").asText());
                     // Tabla resumen derecha
                     modeloFormProv.setRowCount(0);
                     String[][] filas = {
-                        {"Nombre",             txtProvNombre.getText()},
-                        {"Teléfono",           txtProvTelefono.getText()},
-                        {"Correo electrónico", txtProvCorreo.getText()},
-                        {"Domicilio",          txtProvDomicilio.getText()},
-                        {"Colonia",            txtProvColonia.getText()},
-                        {"Municipio / Estado", txtProvMunicipio.getText()},
-                        {"Código postal",      txtProvCp.getText()},
-                        {"Notas",              txtProvNotas.getText()}
+                        {"Nombre",    txtProvNombre.getText()},
+                        {"Teléfono",  txtProvTelefono.getText()},
+                        {"Correo",    txtProvCorreo.getText()},
+                        {"Dirección", txtProvDireccion.getText()},
+                        {"Notas",     txtProvNotas.getText()}
                     };
                     for (String[] fila : filas) modeloFormProv.addRow(fila);
                 } catch (Exception ex) {
@@ -1122,11 +1107,8 @@ public class PRODUCTOS extends JFrame {
         if (id != null) sb.append("\"idProveedor\":").append(id).append(",");
         sb.append("\"nombreProveedor\":\"").append(esc(txtProvNombre.getText())).append("\",");
         sb.append("\"telefono\":\"").append(esc(txtProvTelefono.getText())).append("\",");
-        sb.append("\"correoElectronico\":\"").append(esc(txtProvCorreo.getText())).append("\",");
-        sb.append("\"domicilio\":\"").append(esc(txtProvDomicilio.getText())).append("\",");
-        sb.append("\"colonia\":\"").append(esc(txtProvColonia.getText())).append("\",");
-        sb.append("\"municipioEstado\":\"").append(esc(txtProvMunicipio.getText())).append("\",");
-        sb.append("\"codigoPostal\":\"").append(esc(txtProvCp.getText())).append("\",");
+        sb.append("\"correo\":\"").append(esc(txtProvCorreo.getText())).append("\",");
+        sb.append("\"direccion\":\"").append(esc(txtProvDireccion.getText())).append("\",");
         sb.append("\"notas\":\"").append(esc(txtProvNotas.getText())).append("\"");
         sb.append("}");
         return sb.toString();
