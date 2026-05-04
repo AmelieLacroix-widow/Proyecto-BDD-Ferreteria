@@ -254,9 +254,11 @@ CREATE TABLE CORTE (
         ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO USUARIO (nombre_usuario, contrasena_hash)
-VALUES ('admin', SHA2('Admin2025!', 256));
+ALTER TABLE USUARIO
+ADD COLUMN rol ENUM('ADMIN','USER') NOT NULL DEFAULT 'USER';
 
--- El administrador (id=1) tiene acceso a todos los módulos
-INSERT INTO USUARIO_MODULO (id_usuario, id_modulo)
-SELECT 1, id_modulo FROM MODULO;
+INSERT INTO USUARIO (nombre_usuario, contrasena_hash, rol)
+VALUES ('admin', 'Admin2025!', 'ADMIN');
+
+INSERT INTO USUARIO (nombre_usuario, contrasena_hash, rol)
+VALUES ('usuario1', 'User2025!', 'USER');
