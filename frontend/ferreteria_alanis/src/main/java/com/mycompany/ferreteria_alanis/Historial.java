@@ -20,6 +20,7 @@ import java.util.logging.Logger;
 /**
  * Pantalla de Historial de Ventas.
  * Endpoints que el backend debe exponer:
+ *
  *   GET /ventas/historial?fecha=YYYY-MM-DD
  *        Devuelve: [{folioTicket, articulos, horaTicket, totalNeto}, ...]
  *
@@ -35,10 +36,12 @@ public class Historial extends JFrame {
     private static final Logger logger =
             Logger.getLogger(Historial.class.getName());
 
-    private final ApiClient    api    = ApiClient.getInstance();
+    private final ApiClient api = ApiClient.getInstance();
     private final ObjectMapper mapper = api.getMapper();
 
     private final String rol;
+    // nombreUsuario se obtiene de SesionActual para pasarlo al navegar a VENTAS
+    private final String nombreUsuario;
 
     private static final Color NARANJA       = new Color(255, 153, 0);
     private static final Color NARANJA_CLARO = new Color(255, 204, 102);
@@ -46,20 +49,22 @@ public class Historial extends JFrame {
 
     private LocalDate fechaActual = LocalDate.now();
 
-    private JTextField        txtBusqueda;
-    private JLabel            lblFechaValor;
-    private JTable            tablaFolios;
+    private JTextField txtBusqueda;
+    private JLabel lblFechaValor;
+    private JTable tablaFolios;
     private DefaultTableModel modeloFolios;
 
-    private JLabel            lblFolioValor;
-    private JLabel            lblCajeroValor;
-    private JLabel            lblTotalValor;
-    private JLabel            lblFechaTicket;
-    private JTable            tablaDetalle;
+    private JLabel lblFolioValor;
+    private JLabel lblCajeroValor;
+    private JLabel lblTotalValor;
+    private JLabel lblFechaTicket;
+    private JTable tablaDetalle;
     private DefaultTableModel modeloDetalle;
 
-    public Historial(String rol) {
+    // ─── Constructor corregido: ahora recibe también nombreUsuario ───────────
+    public Historial(String rol, String nombreUsuario) {
         this.rol = rol;
+        this.nombreUsuario = nombreUsuario;
         setTitle("Ferretería e Instalaciones Eléctricas Alanís");
         setSize(900, 580);
         setLocationRelativeTo(null);
@@ -68,7 +73,13 @@ public class Historial extends JFrame {
         cargarHistorialDelDia();
     }
 
+    // ─── Compatibilidad: si alguien llama Historial(rol) usa SesionActual ───
+    public Historial(String rol) {
+        this(rol, SesionActual.getNombreUsuario());
+    }
+
     //  CONSTRUCCIÓN DE LA INTERFAZ
+
     private void initComponents() {
 
         JPanel barraTop = new JPanel(new BorderLayout());
@@ -87,11 +98,19 @@ public class Historial extends JFrame {
         JLabel nombreEmpresa = new JLabel("  Ferretería e Instalaciones Eléctricas Alanís");
         nombreEmpresa.setFont(new Font("Arial", Font.BOLD, 13));
 
+        // Botón "Usuario: X" en la esquina superior derecha
+        JButton btnUsuarioInfo = new JButton("Usuario: " + nombreUsuario);
+        btnUsuarioInfo.setBackground(NARANJA);
+        btnUsuarioInfo.setFont(new Font("Arial", Font.BOLD, 12));
+        btnUsuarioInfo.setFocusPainted(false);
+        btnUsuarioInfo.setBorderPainted(false);
+
         JPanel izqTop = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
         izqTop.setBackground(GRIS);
         izqTop.add(logoLabel);
         izqTop.add(nombreEmpresa);
         barraTop.add(izqTop, BorderLayout.WEST);
+        barraTop.add(btnUsuarioInfo, BorderLayout.EAST);
 
         JPanel barraModulos = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 3));
         barraModulos.setBackground(GRIS);
@@ -99,15 +118,16 @@ public class Historial extends JFrame {
                 BorderFactory.createMatteBorder(0, 0, 1, 0, Color.BLACK));
 
         JButton btnVentas = botonModulo("VENTAS");
+        // CORRECCIÓN: se pasan los dos parámetros requeridos por VENTAS
         btnVentas.addActionListener(e -> {
-            new VENTAS(rol).setVisible(true);
+            new VENTAS(rol, nombreUsuario).setVisible(true);
             this.dispose();
         });
 
-        JButton btnProductos  = botonModulo("PRODUCTOS");
+        JButton btnProductos = botonModulo("PRODUCTOS");
         JButton btnInventario = botonModulo("INVENTARIO");
-        JButton btnCorte      = botonModulo("CORTE");
-        JButton btnUsuario    = botonModulo("USUARIO");
+        JButton btnCorte = botonModulo("CORTE");
+        JButton btnUsuario = botonModulo("USUARIO");
 
         barraModulos.add(btnVentas);
         barraModulos.add(btnProductos);
@@ -117,15 +137,24 @@ public class Historial extends JFrame {
 
         if ("ADMIN".equalsIgnoreCase(rol)) {
             btnProductos.setVisible(true);
+            btnProductos.addActionListener(e -> {
+                new PRODUCTOS(rol, nombreUsuario).setVisible(true);
+                this.dispose();
+            });
             btnCorte.setVisible(true);
+            btnCorte.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Corte",
+                    JOptionPane.INFORMATION_MESSAGE));
             btnUsuario.setVisible(true);
+            btnUsuario.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Usuario",
+                    JOptionPane.INFORMATION_MESSAGE));
         } else {
             btnProductos.setVisible(false);
             btnCorte.setVisible(false);
             btnUsuario.setVisible(false);
         }
 
-        
         JPanel barraNaranja = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 3));
         barraNaranja.setBackground(NARANJA);
         JLabel lblVentas = new JLabel("Ventas");
@@ -141,8 +170,9 @@ public class Historial extends JFrame {
         btnTicket.setBackground(GRIS);
         btnTicket.setFont(new Font("Arial", Font.PLAIN, 12));
         btnTicket.setFocusPainted(false);
+        // CORRECCIÓN: se pasan los dos parámetros requeridos por VENTAS
         btnTicket.addActionListener(e -> {
-            new VENTAS(rol).setVisible(true);
+            new VENTAS(rol, nombreUsuario).setVisible(true);
             this.dispose();
         });
 
@@ -194,7 +224,8 @@ public class Historial extends JFrame {
                 filtrarPorFolio(txtBusqueda.getText().trim());
             }
         });
-        panelBusqueda.add(lupa,        BorderLayout.WEST);
+
+        panelBusqueda.add(lupa, BorderLayout.WEST);
         panelBusqueda.add(txtBusqueda, BorderLayout.CENTER);
 
         JPanel panelFecha = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
@@ -227,15 +258,16 @@ public class Historial extends JFrame {
 
         JPanel norte = new JPanel(new BorderLayout(0, 4));
         norte.setBackground(GRIS);
-        norte.add(titulo,       BorderLayout.NORTH);
+        norte.add(titulo, BorderLayout.NORTH);
         norte.add(panelBusqueda, BorderLayout.CENTER);
-        norte.add(panelFecha,    BorderLayout.SOUTH);
+        norte.add(panelFecha, BorderLayout.SOUTH);
 
         String[] colsFolios = {"Folio", "Arts", "Hora", "Total"};
         modeloFolios = new DefaultTableModel(colsFolios, 0) {
             @Override
             public boolean isCellEditable(int row, int col) { return false; }
         };
+
         tablaFolios = new JTable(modeloFolios);
         estilizarTabla(tablaFolios);
         tablaFolios.getColumnModel().getColumn(0).setPreferredWidth(60);
@@ -255,7 +287,7 @@ public class Historial extends JFrame {
         JScrollPane scroll = new JScrollPane(tablaFolios);
         scroll.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
 
-        p.add(norte,  BorderLayout.NORTH);
+        p.add(norte, BorderLayout.NORTH);
         p.add(scroll, BorderLayout.CENTER);
         return p;
     }
@@ -273,9 +305,9 @@ public class Historial extends JFrame {
         JLabel tTicket = new JLabel("Ticket");
         tTicket.setFont(new Font("Arial", Font.BOLD, 15));
 
-        lblFolioValor  = new JLabel("—");
+        lblFolioValor = new JLabel("—");
         lblCajeroValor = new JLabel("—");
-        lblTotalValor  = new JLabel("—");
+        lblTotalValor = new JLabel("—");
         lblTotalValor.setFont(new Font("Arial", Font.BOLD, 14));
         lblFechaTicket = new JLabel("—");
         lblFechaTicket.setFont(new Font("Arial", Font.BOLD, 12));
@@ -285,19 +317,19 @@ public class Historial extends JFrame {
         encabezado.add(tTicket, g);
 
         g.gridwidth = 1; g.anchor = GridBagConstraints.WEST;
-        g.gridx = 0; g.gridy = 1; encabezado.add(new JLabel("Folio:"),  g);
-        g.gridx = 1;               encabezado.add(lblFolioValor,          g);
-        g.gridx = 2;               encabezado.add(new JLabel("Total:"),  g);
-        g.gridx = 3;               encabezado.add(lblTotalValor,          g);
+        g.gridx = 0; g.gridy = 1; encabezado.add(new JLabel("Folio:"), g);
+        g.gridx = 1; encabezado.add(lblFolioValor, g);
+        g.gridx = 2; encabezado.add(new JLabel("Total:"), g);
+        g.gridx = 3; encabezado.add(lblTotalValor, g);
         g.gridx = 0; g.gridy = 2; encabezado.add(new JLabel("Cajero:"), g);
-        g.gridx = 1; g.gridwidth = 3; encabezado.add(lblCajeroValor,      g);
+        g.gridx = 1; g.gridwidth = 3; encabezado.add(lblCajeroValor, g);
         g.gridx = 0; g.gridy = 3; g.gridwidth = 4;
         g.anchor = GridBagConstraints.CENTER;
         encabezado.add(lblFechaTicket, g);
 
         JPanel norte = new JPanel(new BorderLayout(0, 4));
         norte.setBackground(Color.WHITE);
-        norte.add(encabezado,     BorderLayout.CENTER);
+        norte.add(encabezado, BorderLayout.CENTER);
         norte.add(new JSeparator(), BorderLayout.SOUTH);
 
         String[] colsDet = {"Código", "Descripción", "Precio",
@@ -306,6 +338,7 @@ public class Historial extends JFrame {
             @Override
             public boolean isCellEditable(int row, int col) { return false; }
         };
+
         tablaDetalle = new JTable(modeloDetalle);
         estilizarTabla(tablaDetalle);
         tablaDetalle.getColumnModel().getColumn(0).setPreferredWidth(75);
@@ -318,7 +351,7 @@ public class Historial extends JFrame {
         JScrollPane scroll = new JScrollPane(tablaDetalle);
         scroll.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
 
-        p.add(norte,  BorderLayout.NORTH);
+        p.add(norte, BorderLayout.NORTH);
         p.add(scroll, BorderLayout.CENTER);
         return p;
     }
@@ -335,7 +368,7 @@ public class Historial extends JFrame {
             protected Void doInBackground() throws Exception {
                 String endpoint = "/ventas/historial?fecha="
                         + fechaActual.toString();
-                String json    = api.get(endpoint);
+                String json = api.get(endpoint);
                 JsonNode array = mapper.readTree(json);
 
                 SwingUtilities.invokeLater(() -> {
@@ -344,12 +377,13 @@ public class Historial extends JFrame {
                         modeloFolios.addRow(new Object[]{
                             t.path("folioTicket").asInt(),
                             t.path("articulos").asInt(),
-                            formatearHora(t.path("horaTicket").asText("")),
+                            formatearHora(textOrDefault(t, "horaTicket", "")),
                             "$" + String.format("%.2f",
                                 t.path("totalNeto").asDouble())
                         });
                     }
                 });
+
                 return null;
             }
 
@@ -372,19 +406,18 @@ public class Historial extends JFrame {
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
-                String json  = api.get("/ventas/historial/" + folio);
+                String json = api.get("/ventas/historial/" + folio);
                 JsonNode obj = mapper.readTree(json);
 
                 SwingUtilities.invokeLater(() -> {
                     lblFolioValor.setText(
                             String.valueOf(obj.path("folioTicket").asInt()));
                     lblCajeroValor.setText(
-                            obj.path("nombreUsuario").asText("—"));
+                            textOrDefault(obj, "nombreUsuario", "—"));
                     lblTotalValor.setText(
                             "$" + String.format("%.2f",
                                 obj.path("totalNeto").asDouble()));
-                    String fechaStr = obj.path("fechaTicket")
-                            .asText(LocalDate.now().toString());
+                    String fechaStr = textOrDefault(obj, "fechaTicket", LocalDate.now().toString());
                     try {
                         lblFechaTicket.setText(
                                 formatearFechaLarga(LocalDate.parse(fechaStr)));
@@ -407,6 +440,7 @@ public class Historial extends JFrame {
                         });
                     }
                 });
+
                 return null;
             }
 
@@ -428,6 +462,7 @@ public class Historial extends JFrame {
             tablaFolios.setRowSorter(null);
             return;
         }
+
         TableRowSorter<DefaultTableModel> sorter =
                 new TableRowSorter<>(modeloFolios);
         tablaFolios.setRowSorter(sorter);
@@ -437,11 +472,11 @@ public class Historial extends JFrame {
     //  UTILIDADES
 
     private void limpiarDetalle() {
-        if (lblFolioValor  != null) lblFolioValor.setText("—");
+        if (lblFolioValor != null) lblFolioValor.setText("—");
         if (lblCajeroValor != null) lblCajeroValor.setText("—");
-        if (lblTotalValor  != null) lblTotalValor.setText("—");
+        if (lblTotalValor != null) lblTotalValor.setText("—");
         if (lblFechaTicket != null) lblFechaTicket.setText("—");
-        if (modeloDetalle  != null) modeloDetalle.setRowCount(0);
+        if (modeloDetalle != null) modeloDetalle.setRowCount(0);
     }
 
     private void estilizarTabla(JTable tabla) {
@@ -475,6 +510,7 @@ public class Historial extends JFrame {
                 null,
                 java.sql.Date.valueOf(LocalDate.now()),
                 java.util.Calendar.DAY_OF_MONTH);
+
         JSpinner spinner = new JSpinner(modelo);
         spinner.setEditor(new JSpinner.DateEditor(spinner, "dd/MM/yyyy"));
 
@@ -482,6 +518,7 @@ public class Historial extends JFrame {
                 "Seleccionar fecha",
                 JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.PLAIN_MESSAGE);
+
         if (r == JOptionPane.OK_OPTION) {
             java.util.Date d = (java.util.Date) spinner.getValue();
             fechaActual = d.toInstant()
@@ -504,14 +541,25 @@ public class Historial extends JFrame {
         }
     }
 
-    /** LocalDate → "Martes , 1 de abril de 2026" */
+    /** LocalDate → "Martes, 1 de abril de 2026" */
     private String formatearFechaLarga(LocalDate d) {
         try {
             return d.format(DateTimeFormatter.ofPattern(
-                    "EEEE , d 'de' MMMM 'de' yyyy",
-                    new Locale("es", "MX")));
+                    "EEEE, d 'de' MMMM 'de' yyyy",
+                    Locale.forLanguageTag("es-MX")));
         } catch (Exception ex) {
             return d.toString();
         }
+    }
+
+    private String textOrDefault(JsonNode node, String campo, String defaultValue) {
+        if (node == null) {
+            return defaultValue;
+        }
+        JsonNode value = node.path(campo);
+        if (value.isMissingNode() || value.isNull()) {
+            return defaultValue;
+        }
+        return value.asText();
     }
 }
