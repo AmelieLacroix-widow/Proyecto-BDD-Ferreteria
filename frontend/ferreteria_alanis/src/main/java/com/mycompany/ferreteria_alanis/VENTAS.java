@@ -413,24 +413,130 @@ public class VENTAS extends JFrame {
             protected void done() {
                 try {
                     ProductoDTO p = get();
-                    BigDecimal precio = p.getPrecioVentaLista() != null
+                    BigDecimal precioOriginal = p.getPrecioVentaLista() != null
                         ? p.getPrecioVentaLista() : BigDecimal.ZERO;
-                    BigDecimal cantidad   = BigDecimal.ONE;
-                    BigDecimal importe    = precio;
                     BigDecimal existencia = p.getExistencia() != null
                         ? p.getExistencia() : BigDecimal.ZERO;
 
-                    modelActivo.addRow(new Object[]{
-                        p.getCodigoBarras(),
-                        p.getDescripcion(),
-                        precio,
-                        cantidad,
-                        importe,
-                        existencia,
-                        "0%"         // descuento inicial
+                    // ── Ventana pequeña de confirmación ──────────────────
+                    JDialog dlgProd = new JDialog(VENTAS.this, "Producto", true);
+                    dlgProd.setSize(370, 215);
+                    dlgProd.setLocationRelativeTo(VENTAS.this);
+                    dlgProd.setLayout(new BorderLayout());
+                    dlgProd.setResizable(false);
+
+                    JLabel headerDlg = new JLabel("  Producto");
+                    headerDlg.setOpaque(true);
+                    headerDlg.setBackground(COLOR_NARANJA);
+                    headerDlg.setFont(new Font("Arial", Font.BOLD, 14));
+                    headerDlg.setPreferredSize(new Dimension(0, 30));
+                    dlgProd.add(headerDlg, BorderLayout.NORTH);
+
+                    JPanel body = new JPanel(new GridBagLayout());
+                    body.setBackground(COLOR_FONDO);
+                    body.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+                    GridBagConstraints gc = new GridBagConstraints();
+                    gc.insets = new Insets(4, 4, 4, 4);
+                    gc.anchor = GridBagConstraints.WEST;
+                    gc.fill   = GridBagConstraints.HORIZONTAL;
+
+                    // Fila 0: etiqueta descripción
+                    gc.gridx = 0; gc.gridy = 0; gc.gridwidth = 3; gc.weightx = 1;
+                    body.add(new JLabel("Descripción del Producto:"), gc);
+
+                    // Fila 1: campo descripción (read-only)
+                    gc.gridy = 1;
+                    JTextField txtDescDlg = new JTextField(p.getDescripcion());
+                    txtDescDlg.setEditable(false);
+                    txtDescDlg.setBackground(Color.WHITE);
+                    body.add(txtDescDlg, gc);
+
+                    // Fila 2: etiquetas Cantidad y Precio
+                    gc.gridy = 2; gc.gridwidth = 1; gc.weightx = 1;
+                    gc.gridx = 0; body.add(new JLabel("Cantidad:"), gc);
+                    gc.gridx = 1; gc.weightx = 0; body.add(new JLabel(""), gc);
+                    gc.gridx = 2; gc.weightx = 1; body.add(new JLabel("Precio con impuestos:"), gc);
+
+                    // Fila 3: campo cantidad  X  campo precio
+                    gc.gridy = 3;
+                    gc.gridx = 0; gc.weightx = 1;
+                    JTextField txtCantDlg = new JTextField("1.00", 6);
+                    body.add(txtCantDlg, gc);
+
+                    gc.gridx = 1; gc.weightx = 0;
+                    body.add(new JLabel("X"), gc);
+
+                    gc.gridx = 2; gc.weightx = 1;
+                    BigDecimal precioConIva = precioOriginal
+                        .multiply(new BigDecimal("1.16"))
+                        .setScale(2, RoundingMode.HALF_UP);
+                    JTextField txtPrecioDlg = new JTextField(
+                        "$" + precioConIva.toPlainString(), 8);
+                    txtPrecioDlg.setEditable(false);
+                    txtPrecioDlg.setBackground(Color.WHITE);
+                    body.add(txtPrecioDlg, gc);
+
+                    // Fila 4: checkbox IVA  +  botón Aceptar
+                    gc.gridy = 4; gc.gridx = 0; gc.weightx = 1; gc.gridwidth = 2;
+                    JCheckBox chkIva = new JCheckBox("IVA (16%)", true);
+                    chkIva.setBackground(COLOR_FONDO);
+                    body.add(chkIva, gc);
+
+                    gc.gridx = 2; gc.gridwidth = 1;
+                    JButton btnAceptarDlg = new JButton("Aceptar");
+                    btnAceptarDlg.setBackground(COLOR_NARANJA);
+                    btnAceptarDlg.setFont(new Font("Arial", Font.BOLD, 13));
+                    body.add(btnAceptarDlg, gc);
+
+                    dlgProd.add(body, BorderLayout.CENTER);
+
+                    // Recalcular precio al cambiar el checkbox de IVA
+                    chkIva.addActionListener(ev -> {
+                        BigDecimal mostrar = chkIva.isSelected()
+                            ? precioOriginal.multiply(new BigDecimal("1.16"))
+                                .setScale(2, RoundingMode.HALF_UP)
+                            : precioOriginal.setScale(2, RoundingMode.HALF_UP);
+                        txtPrecioDlg.setText("$" + mostrar.toPlainString());
                     });
-                    actualizarTotal(modelActivo);
-                    txtCodigo.setText("");
+
+                    // Aceptar → validar cantidad → agregar renglón al ticket
+                    btnAceptarDlg.addActionListener(ev -> {
+                        try {
+                            BigDecimal cant = new BigDecimal(txtCantDlg.getText().trim());
+                            if (cant.compareTo(BigDecimal.ZERO) <= 0)
+                                throw new NumberFormatException();
+
+                            BigDecimal precioFinal = chkIva.isSelected()
+                                ? precioOriginal.multiply(new BigDecimal("1.16"))
+                                    .setScale(2, RoundingMode.HALF_UP)
+                                : precioOriginal.setScale(2, RoundingMode.HALF_UP);
+                            BigDecimal importe = precioFinal.multiply(cant)
+                                .setScale(2, RoundingMode.HALF_UP);
+
+                            modelActivo.addRow(new Object[]{
+                                p.getCodigoBarras(),
+                                p.getDescripcion(),
+                                precioFinal,
+                                cant,
+                                importe,
+                                existencia,
+                                "0%"
+                            });
+                            actualizarTotal(modelActivo);
+                            txtCodigo.setText("");
+                            dlgProd.dispose();
+                        } catch (NumberFormatException ex2) {
+                            JOptionPane.showMessageDialog(dlgProd,
+                                "Ingresa una cantidad válida mayor a 0.",
+                                "Cantidad inválida", JOptionPane.WARNING_MESSAGE);
+                        }
+                    });
+
+                    // Enter en el campo cantidad también acepta
+                    txtCantDlg.addActionListener(ev -> btnAceptarDlg.doClick());
+
+                    dlgProd.setVisible(true);
+
                 } catch (Exception ex) {
                     LOGGER.log(Level.WARNING, "Producto no encontrado", ex);
                     JOptionPane.showMessageDialog(VENTAS.this,

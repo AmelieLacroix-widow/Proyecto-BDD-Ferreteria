@@ -502,7 +502,7 @@ public class PRODUCTOS extends JFrame {
             }
             // Siempre POST para crear nuevo (Guardar = nuevo)
             String json = "{\"nombreDepartamento\":\"" + nombre + "\","
-                        + "\"descripcion\":\"" + desc + "\"}";
+                        + "\"descripcionDepartamento\":\"" + desc + "\"}";
             new SwingWorker<Void, Void>() {
                 @Override protected Void doInBackground() throws Exception {
                     api.post("/departamentos", json);
@@ -541,7 +541,7 @@ public class PRODUCTOS extends JFrame {
             int id = depIdSeleccionado;
             String json = "{\"idDepartamento\":" + id + ","
                         + "\"nombreDepartamento\":\"" + nombre + "\","
-                        + "\"descripcion\":\"" + desc + "\"}";
+                        + "\"descripcionDepartamento\":\"" + desc + "\"}";
             new SwingWorker<Void, Void>() {
                 @Override protected Void doInBackground() throws Exception {
                     api.put("/departamentos/" + id, json);
@@ -960,7 +960,7 @@ public class PRODUCTOS extends JFrame {
                     for (com.fasterxml.jackson.databind.JsonNode n : get()) {
                         modeloDepartamentos.addRow(new Object[]{
                             n.path("nombreDepartamento").asText(),
-                            n.path("descripcion").asText()
+                            n.path("descripcionDepartamento").asText()
                         });
                     }
                 } catch (Exception ex) {

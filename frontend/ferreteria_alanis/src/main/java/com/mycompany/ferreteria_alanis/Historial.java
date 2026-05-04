@@ -367,35 +367,35 @@ public class Historial extends JFrame {
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
-                String endpoint = "/tickets/fecha?fecha="
-                        + fechaActual.toString();
+                String endpoint = "/tickets/fecha?fecha=" + fechaActual.toString();
                 String json = api.get(endpoint);
                 JsonNode array = mapper.readTree(json);
 
                 SwingUtilities.invokeLater(() -> {
                     modeloFolios.setRowCount(0);
                     for (JsonNode t : array) {
-                        // El endpoint /tickets/fecha devuelve objetos Ticket completos
-                        int folio     = t.path("folioTicket").asInt();
-                        // Contar artículos sumando detalles si están presentes, si no mostrar 0
-                        int arts = 0;
-                        JsonNode detalles = t.path("detalleTickets");
-                        if (detalles.isArray()) {
-                            for (JsonNode d : detalles) {
-                                arts += d.path("cantidad").asInt(1);
-                            }
-                        }
-                        String hora = textOrDefault(t, "horaTicket", "");
+                        // Sólo mostrar tickets de tipo "Ticket" con estado "Pagado"
+                        String tipo   = t.path("tipoDocumento").asText();
+                        String estado = t.path("estadoDocumento").asText();
+                        if (!"Ticket".equals(tipo) || !"Pagado".equals(estado)) continue;
+
+                        int folio = t.path("folioTicket").asInt();
+
+                        // La hora real del modelo es horaTransaccion
+                        String hora = t.path("horaTransaccion").asText();
+
                         double total = t.path("totalNeto").asDouble(0);
+
+                        // Los detalles vienen lazy → no están aquí, mostramos 0 artículos
+                        // Se cargarán al seleccionar el folio
                         modeloFolios.addRow(new Object[]{
                             folio,
-                            arts,
+                            0,          // artículos: se rellena al seleccionar
                             hora.isBlank() ? "—" : formatearHora(hora),
                             "$" + String.format("%.2f", total)
                         });
                     }
                 });
-
                 return null;
             }
 
@@ -411,60 +411,72 @@ public class Historial extends JFrame {
         }.execute();
     }
 
-    /** GET /tickets/{folio} */
+    /** GET /tickets/{folio}  +  GET /tickets/{folio}/detalle */
     private void cargarDetalleTicket(int folio) {
         modeloDetalle.setRowCount(0);
 
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
-                String json = api.get("/tickets/" + folio);
-                JsonNode obj = mapper.readTree(json);
+                // Llamada 1: cabecera del ticket
+                String jsonTicket = api.get("/tickets/" + folio);
+                JsonNode obj = mapper.readTree(jsonTicket);
+
+                // Llamada 2: renglones (FetchType.LAZY, endpoint separado)
+                String jsonDetalle = api.get("/tickets/" + folio + "/detalle");
+                JsonNode detalles  = mapper.readTree(jsonDetalle);
 
                 SwingUtilities.invokeLater(() -> {
-                    lblFolioValor.setText(
-                            String.valueOf(obj.path("folioTicket").asInt()));
-                    // El campo cajero puede venir en idUsuario o como objeto usuario
-                    String cajero = obj.path("usuario").path("nombreUsuario").asText();
-                    if (cajero.isBlank()) cajero = textOrDefault(obj, "nombreUsuario", "—");
+                    lblFolioValor.setText(String.valueOf(obj.path("folioTicket").asInt()));
+
+                    // Cajero: objeto anidado usuario.nombreUsuario
+                    String cajero = textOrDefault(obj.path("usuario"), "nombreUsuario", "—");
                     lblCajeroValor.setText(cajero);
+
                     lblTotalValor.setText(
-                            "$" + String.format("%.2f",
-                                obj.path("totalNeto").asDouble()));
-                    String fechaStr = textOrDefault(obj, "fechaTicket", LocalDate.now().toString());
+                        "$" + String.format("%.2f", obj.path("totalNeto").asDouble()));
+
+                    // Campo real del modelo: fechaTransaccion
+                    String fechaStr = textOrDefault(obj, "fechaTransaccion",
+                        LocalDate.now().toString());
                     try {
                         lblFechaTicket.setText(
-                                formatearFechaLarga(LocalDate.parse(fechaStr)));
+                            formatearFechaLarga(LocalDate.parse(fechaStr)));
                     } catch (Exception ex) {
                         lblFechaTicket.setText(fechaStr);
                     }
 
-                    // Detalles vienen en "detalleTickets" según el modelo DetalleTicket
-                    JsonNode detalles = obj.path("detalleTickets");
+                    // Renglones: campos reales de DetalleTicket
+                    int totalArts = 0;
                     for (JsonNode d : detalles) {
-                        // codigoBarras puede ser campo directo o anidado en producto
-                        String cod = d.path("codigoBarras").asText();
-                        if (cod.isBlank()) {
-                            cod = d.path("producto").path("codigoBarras").asText();
-                        }
-                        String desc = d.path("descripcion").asText();
-                        if (desc.isBlank()) {
-                            desc = d.path("producto").path("descripcion").asText();
-                        }
+                        String cod  = d.path("codigoBarras").asText();
+                        String desc = d.path("producto").path("descripcion").asText();
+                        if (desc.isEmpty()) desc = cod;
+                        java.math.BigDecimal cant =
+                            java.math.BigDecimal.valueOf(d.path("cantidad").asDouble(0.0));
+                        totalArts += cant.intValue();
                         modeloDetalle.addRow(new Object[]{
                             cod,
                             desc,
                             "$" + String.format("%.2f",
                                 d.path("precioUnitarioVenta").asDouble()),
-                            d.path("cantidad").asText(),
+                            cant.stripTrailingZeros().toPlainString(),
                             "$" + String.format("%.2f",
                                 d.path("importe").asDouble()),
                             String.format("%.0f%%",
                                 d.path("descuentoProducto").asDouble())
                         });
                     }
-                });
 
+                    // Actualizar conteo de artículos en la tabla de folios
+                    final int arts = totalArts;
+                    for (int i = 0; i < modeloFolios.getRowCount(); i++) {
+                        if (Integer.valueOf(folio).equals(modeloFolios.getValueAt(i, 0))) {
+                            modeloFolios.setValueAt(arts, i, 1);
+                            break;
+                        }
+                    }
+                });
                 return null;
             }
 
@@ -480,7 +492,7 @@ public class Historial extends JFrame {
         }.execute();
     }
 
-    /** Filtra la tabla izquierda sin nueva petición HTTP */
+        /** Filtra la tabla izquierda sin nueva petición HTTP */
     private void filtrarPorFolio(String texto) {
         if (texto.isEmpty()) {
             tablaFolios.setRowSorter(null);
