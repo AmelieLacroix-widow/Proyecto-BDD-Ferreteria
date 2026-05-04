@@ -359,7 +359,7 @@ public class Historial extends JFrame {
 
     //  LÓGICA DE DATOS — ApiClient
 
-    /** GET /ventas/historial?fecha=YYYY-MM-DD */
+    /** GET /tickets/fecha?fecha=YYYY-MM-DD */
     private void cargarHistorialDelDia() {
         modeloFolios.setRowCount(0);
         limpiarDetalle();
@@ -367,7 +367,7 @@ public class Historial extends JFrame {
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
-                String endpoint = "/ventas/historial?fecha="
+                String endpoint = "/tickets/fecha?fecha="
                         + fechaActual.toString();
                 String json = api.get(endpoint);
                 JsonNode array = mapper.readTree(json);
@@ -375,12 +375,23 @@ public class Historial extends JFrame {
                 SwingUtilities.invokeLater(() -> {
                     modeloFolios.setRowCount(0);
                     for (JsonNode t : array) {
+                        // El endpoint /tickets/fecha devuelve objetos Ticket completos
+                        int folio     = t.path("folioTicket").asInt();
+                        // Contar artículos sumando detalles si están presentes, si no mostrar 0
+                        int arts = 0;
+                        JsonNode detalles = t.path("detalleTickets");
+                        if (detalles.isArray()) {
+                            for (JsonNode d : detalles) {
+                                arts += d.path("cantidad").asInt(1);
+                            }
+                        }
+                        String hora = textOrDefault(t, "horaTicket", "");
+                        double total = t.path("totalNeto").asDouble(0);
                         modeloFolios.addRow(new Object[]{
-                            t.path("folioTicket").asInt(),
-                            t.path("articulos").asInt(),
-                            formatearHora(textOrDefault(t, "horaTicket", "")),
-                            "$" + String.format("%.2f",
-                                t.path("totalNeto").asDouble())
+                            folio,
+                            arts,
+                            hora.isBlank() ? "—" : formatearHora(hora),
+                            "$" + String.format("%.2f", total)
                         });
                     }
                 });
@@ -400,21 +411,23 @@ public class Historial extends JFrame {
         }.execute();
     }
 
-    /** GET /ventas/historial/{folio} */
+    /** GET /tickets/{folio} */
     private void cargarDetalleTicket(int folio) {
         modeloDetalle.setRowCount(0);
 
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
-                String json = api.get("/ventas/historial/" + folio);
+                String json = api.get("/tickets/" + folio);
                 JsonNode obj = mapper.readTree(json);
 
                 SwingUtilities.invokeLater(() -> {
                     lblFolioValor.setText(
                             String.valueOf(obj.path("folioTicket").asInt()));
-                    lblCajeroValor.setText(
-                            textOrDefault(obj, "nombreUsuario", "—"));
+                    // El campo cajero puede venir en idUsuario o como objeto usuario
+                    String cajero = obj.path("usuario").path("nombreUsuario").asText();
+                    if (cajero.isBlank()) cajero = textOrDefault(obj, "nombreUsuario", "—");
+                    lblCajeroValor.setText(cajero);
                     lblTotalValor.setText(
                             "$" + String.format("%.2f",
                                 obj.path("totalNeto").asDouble()));
@@ -426,11 +439,21 @@ public class Historial extends JFrame {
                         lblFechaTicket.setText(fechaStr);
                     }
 
-                    JsonNode detalles = obj.path("detalles");
+                    // Detalles vienen en "detalleTickets" según el modelo DetalleTicket
+                    JsonNode detalles = obj.path("detalleTickets");
                     for (JsonNode d : detalles) {
+                        // codigoBarras puede ser campo directo o anidado en producto
+                        String cod = d.path("codigoBarras").asText();
+                        if (cod.isBlank()) {
+                            cod = d.path("producto").path("codigoBarras").asText();
+                        }
+                        String desc = d.path("descripcion").asText();
+                        if (desc.isBlank()) {
+                            desc = d.path("producto").path("descripcion").asText();
+                        }
                         modeloDetalle.addRow(new Object[]{
-                            d.path("codigoBarras").asText(),
-                            d.path("nombreProducto").asText(),
+                            cod,
+                            desc,
                             "$" + String.format("%.2f",
                                 d.path("precioUnitarioVenta").asDouble()),
                             d.path("cantidad").asText(),
