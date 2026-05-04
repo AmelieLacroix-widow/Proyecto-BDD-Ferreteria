@@ -106,12 +106,13 @@ public class VENTAS extends JFrame {
         izquierda.add(lblNombre);
         header.add(izquierda, BorderLayout.WEST);
 
-        // "Usuario: X" — sin acción por ahora
+        // "Usuario: X" — popup para cerrar sesión
         JButton btnUsuarioInfo = new JButton("Usuario: " + nombreUsuario);
         btnUsuarioInfo.setBackground(COLOR_NARANJA);
         btnUsuarioInfo.setFont(new Font("Arial", Font.BOLD, 12));
         btnUsuarioInfo.setFocusPainted(false);
         btnUsuarioInfo.setBorderPainted(false);
+        btnUsuarioInfo.addActionListener(e -> mostrarPopupSesion(btnUsuarioInfo));
         header.add(btnUsuarioInfo, BorderLayout.EAST);
         nav.add(header, BorderLayout.NORTH);
 
@@ -196,9 +197,10 @@ public class VENTAS extends JFrame {
         btnsFranja.setOpaque(false);
         JButton btnTicket    = new JButton("Ticket");
         JButton btnHistorial = new JButton("Historial");
-        btnHistorial.addActionListener(e ->
-            JOptionPane.showMessageDialog(this, "Historial en construcción.", "Historial",
-                JOptionPane.INFORMATION_MESSAGE));
+        btnHistorial.addActionListener(e -> {
+            new Historial(rol, nombreUsuario).setVisible(true);
+            dispose();
+        });
         btnsFranja.add(btnTicket);
         btnsFranja.add(btnHistorial);
         franjaVentas.add(btnsFranja, BorderLayout.EAST);
@@ -221,15 +223,23 @@ public class VENTAS extends JFrame {
         barraBusqueda.add(txtCodigo);
         barraBusqueda.add(btnAgregar);
 
-        // ── Pestañas de tickets ───────────────────────────────────────────
+        // ── Pestañas de tickets (inicia con solo 1) ───────────────────────
         ticketPane = new JTabbedPane();
         ticketPane.setBackground(COLOR_FONDO);
 
-        for (int i = 1; i <= 3; i++) {
-            DefaultTableModel model = crearModeloTicket();
-            ticketModels.add(model);
-            ticketPane.addTab("Ticket " + i, crearPanelTicket(model));
-        }
+        // Solo el primer ticket al arrancar
+        DefaultTableModel model1 = crearModeloTicket();
+        ticketModels.add(model1);
+        ticketPane.addTab("Ticket 1", crearPanelTicket(model1));
+
+        // El botón "Ticket" agrega pestañas dinámicamente (sin límite fijo)
+        btnTicket.addActionListener(e -> {
+            int num = ticketModels.size() + 1;
+            DefaultTableModel nuevoModel = crearModeloTicket();
+            ticketModels.add(nuevoModel);
+            ticketPane.addTab("Ticket " + num, crearPanelTicket(nuevoModel));
+            ticketPane.setSelectedIndex(ticketPane.getTabCount() - 1);
+        });
 
         // Panel superior (franja + buscador)
         JPanel superior = new JPanel(new BorderLayout());
@@ -326,7 +336,7 @@ public class VENTAS extends JFrame {
         btnEliminar.setBackground(new Color(204, 51, 0));
         btnEliminar.setForeground(Color.WHITE);
         btnEliminar.setFont(new Font("Arial", Font.BOLD, 13));
-        btnEliminar.addActionListener(e -> eliminarRenglonDelTicket());
+        btnEliminar.addActionListener(e -> eliminarSeleccion());
 
         JButton btnDescuento = new JButton("Descuento");
         btnDescuento.setBackground(new Color(255, 102, 0));
@@ -346,9 +356,7 @@ public class VENTAS extends JFrame {
         btnCobrar.setBackground(new Color(102, 204, 0));
         btnCobrar.setFont(new Font("Arial", Font.BOLD, 14));
         btnCobrar.setPreferredSize(new Dimension(90, 35));
-        btnCobrar.addActionListener(e ->
-            JOptionPane.showMessageDialog(this, "Flujo de cobro en construcción.", "Cobrar",
-                JOptionPane.INFORMATION_MESSAGE));
+        btnCobrar.addActionListener(e -> mostrarDialogoCobro());
 
         lblTotal = new JLabel("$ 0.00");
         lblTotal.setFont(new Font("Arial", Font.BOLD, 20));
@@ -531,6 +539,340 @@ public class VENTAS extends JFrame {
     private JTable getTablaActiva() {
         JScrollPane scroll = (JScrollPane) ticketPane.getSelectedComponent();
         return (JTable) scroll.getViewport().getView();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Popup de sesión (botón Usuario)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void mostrarPopupSesion(JButton origen) {
+        JDialog popup = new JDialog(this, false);
+        popup.setUndecorated(true);
+        popup.setLayout(new BorderLayout());
+
+        JPanel contenedor = new JPanel(new GridLayout(0, 1, 0, 0));
+        contenedor.setBackground(new Color(230, 230, 230));
+        contenedor.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+
+        JLabel titulo = new JLabel("Sesión", SwingConstants.CENTER);
+        titulo.setOpaque(true);
+        titulo.setBackground(COLOR_NARANJA);
+        titulo.setFont(new Font("Arial", Font.BOLD, 13));
+        titulo.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+        JButton btnCerrar = new JButton("Cerrar sesión");
+        btnCerrar.setBackground(new Color(230, 230, 230));
+        btnCerrar.setFont(new Font("Arial", Font.PLAIN, 12));
+        btnCerrar.setFocusPainted(false);
+        btnCerrar.addActionListener(ev -> {
+            popup.dispose();
+            SesionActual.setNombreUsuario(null);
+            SesionActual.setRol(null);
+            new Login().setVisible(true);
+            dispose();
+        });
+
+        JButton btnCancelar = new JButton("Cancelar");
+        btnCancelar.setBackground(new Color(230, 230, 230));
+        btnCancelar.setFont(new Font("Arial", Font.PLAIN, 12));
+        btnCancelar.setFocusPainted(false);
+        btnCancelar.addActionListener(ev -> popup.dispose());
+
+        contenedor.add(titulo);
+        contenedor.add(btnCerrar);
+        contenedor.add(btnCancelar);
+        popup.add(contenedor);
+        popup.pack();
+
+        // Posicionar debajo del botón origen
+        Point p = origen.getLocationOnScreen();
+        popup.setLocation(p.x, p.y + origen.getHeight());
+        popup.setVisible(true);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Eliminar: ticket si no hay producto seleccionado, producto si lo hay
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void eliminarSeleccion() {
+        JTable tabla = getTablaActiva();
+        int filaProducto = tabla.getSelectedRow();
+
+        if (filaProducto >= 0) {
+            // Hay un producto seleccionado → eliminar ese renglón
+            eliminarRenglonDelTicket();
+        } else {
+            // No hay producto → ofrecer eliminar el ticket activo
+            int tabIdx = ticketPane.getSelectedIndex();
+            if (ticketModels.size() <= 1) {
+                JOptionPane.showMessageDialog(this,
+                    "No puedes eliminar el único ticket abierto.",
+                    "Aviso", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            int ok = JOptionPane.showConfirmDialog(this,
+                "¿Cerrar el ticket \"" + ticketPane.getTitleAt(tabIdx) + "\"?",
+                "Eliminar ticket", JOptionPane.YES_NO_OPTION);
+            if (ok == JOptionPane.YES_OPTION) {
+                ticketModels.remove(tabIdx);
+                ticketPane.removeTabAt(tabIdx);
+            }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Diálogo de cobro con métodos: Efectivo, Tarjeta, Mixto
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void mostrarDialogoCobro() {
+        DefaultTableModel modelActivo = getModeloActivo();
+
+        // Calcular total e ítems
+        java.math.BigDecimal totalVenta = java.math.BigDecimal.ZERO;
+        int totalArticulos = 0;
+        for (int i = 0; i < modelActivo.getRowCount(); i++) {
+            totalVenta = totalVenta.add(parseBD(modelActivo.getValueAt(i, COL_IMPORTE)));
+            totalArticulos += parseBD(modelActivo.getValueAt(i, COL_CANT)).intValue();
+        }
+        if (totalVenta.compareTo(java.math.BigDecimal.ZERO) == 0) {
+            JOptionPane.showMessageDialog(this, "El ticket está vacío.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        final java.math.BigDecimal totalFinal = totalVenta;
+        final int artsFinal = totalArticulos;
+
+        JDialog dlg = new JDialog(this, "Ticket", true);
+        dlg.setSize(520, 300);
+        dlg.setLocationRelativeTo(this);
+        dlg.setLayout(new BorderLayout());
+
+        // ── Header naranja ───────────────────────────────────────────────
+        JLabel header = new JLabel("Ticket", SwingConstants.LEFT);
+        header.setOpaque(true);
+        header.setBackground(COLOR_NARANJA);
+        header.setFont(new Font("Arial", Font.BOLD, 14));
+        header.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        dlg.add(header, BorderLayout.NORTH);
+
+        // ── Panel izquierdo (monto + métodos + campos dinámicos) ────────
+        JPanel izq = new JPanel();
+        izq.setLayout(new BoxLayout(izq, BoxLayout.Y_AXIS));
+        izq.setBackground(new Color(220, 220, 220));
+        izq.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 10));
+
+        JLabel lblMonto = new JLabel("$" + totalFinal.setScale(2, java.math.RoundingMode.HALF_UP));
+        lblMonto.setFont(new Font("Arial", Font.BOLD, 32));
+        lblMonto.setAlignmentX(Component.CENTER_ALIGNMENT);
+        izq.add(lblMonto);
+        izq.add(Box.createVerticalStrut(12));
+
+        // Botones de método
+        JPanel panelMetodos = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        panelMetodos.setOpaque(false);
+        JButton btnEfectivo = new JButton("Efectivo");
+        JButton btnTarjeta  = new JButton("Tarjeta");
+        JButton btnMixto    = new JButton("Mixto");
+
+        Color inactivo = new Color(180, 180, 180);
+        for (JButton b : new JButton[]{btnEfectivo, btnTarjeta, btnMixto}) {
+            b.setBackground(inactivo);
+            b.setFont(new Font("Arial", Font.BOLD, 12));
+            b.setPreferredSize(new Dimension(80, 55));
+            b.setFocusPainted(false);
+            panelMetodos.add(b);
+        }
+        izq.add(panelMetodos);
+        izq.add(Box.createVerticalStrut(12));
+
+        // Panel dinámico para campos según método
+        JPanel panelCampos = new JPanel();
+        panelCampos.setOpaque(false);
+        panelCampos.setLayout(new BoxLayout(panelCampos, BoxLayout.Y_AXIS));
+        izq.add(panelCampos);
+
+        // ── Panel derecho (botones Cobrar/Cancelar + total artículos) ───
+        JPanel der = new JPanel();
+        der.setLayout(new BoxLayout(der, BoxLayout.Y_AXIS));
+        der.setBackground(new Color(200, 200, 200));
+        der.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        der.setPreferredSize(new Dimension(160, 0));
+
+        JButton btnCobrarFinal = new JButton("Cobrar");
+        btnCobrarFinal.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnCobrarFinal.setMaximumSize(new Dimension(120, 35));
+        btnCobrarFinal.setFont(new Font("Arial", Font.BOLD, 13));
+
+        JButton btnCancelarDlg = new JButton("Cancelar");
+        btnCancelarDlg.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnCancelarDlg.setMaximumSize(new Dimension(120, 35));
+        btnCancelarDlg.setFont(new Font("Arial", Font.BOLD, 13));
+        btnCancelarDlg.addActionListener(ev -> dlg.dispose());
+
+        JLabel lblArtsLbl = new JLabel("Total de artículos:");
+        lblArtsLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+        lblArtsLbl.setFont(new Font("Arial", Font.PLAIN, 13));
+
+        JLabel lblArtsVal = new JLabel(String.valueOf(artsFinal));
+        lblArtsVal.setAlignmentX(Component.CENTER_ALIGNMENT);
+        lblArtsVal.setFont(new Font("Arial", Font.BOLD, 28));
+
+        der.add(btnCobrarFinal);
+        der.add(Box.createVerticalStrut(6));
+        der.add(btnCancelarDlg);
+        der.add(Box.createVerticalStrut(20));
+        der.add(lblArtsLbl);
+        der.add(lblArtsVal);
+
+        dlg.add(izq, BorderLayout.CENTER);
+        dlg.add(der, BorderLayout.EAST);
+
+        // ── Lógica de métodos de pago ────────────────────────────────────
+        // Estado compartido
+        final String[] metodoActual = {null};
+
+        Runnable actualizarCampos = () -> {
+            panelCampos.removeAll();
+            String m = metodoActual[0];
+
+            if ("efectivo".equals(m)) {
+                JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
+                row1.setOpaque(false);
+                row1.add(new JLabel("Pago con:"));
+                JTextField txtPago = new JTextField(8);
+                txtPago.setText("$" + totalFinal.setScale(2, java.math.RoundingMode.HALF_UP));
+                row1.add(txtPago);
+                panelCampos.add(row1);
+
+                JLabel lblCambio = new JLabel("Su cambio es:  $0.00");
+                lblCambio.setFont(new Font("Arial", Font.BOLD, 13));
+                panelCampos.add(lblCambio);
+
+                // Actualizar cambio al escribir
+                txtPago.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+                    void recalc() {
+                        try {
+                            String txt = txtPago.getText().replace("$", "").replace(",", "").trim();
+                            java.math.BigDecimal pagado = new java.math.BigDecimal(txt);
+                            java.math.BigDecimal cambio = pagado.subtract(totalFinal);
+                            if (cambio.compareTo(java.math.BigDecimal.ZERO) >= 0) {
+                                lblCambio.setForeground(Color.BLACK);
+                                lblCambio.setText("Su cambio es:  $" + cambio.setScale(2, java.math.RoundingMode.HALF_UP));
+                            } else {
+                                lblCambio.setForeground(Color.RED);
+                                lblCambio.setText("Restante:  $" + cambio.abs().setScale(2, java.math.RoundingMode.HALF_UP));
+                            }
+                        } catch (Exception ignored) {
+                            lblCambio.setText("Su cambio es:  $—");
+                        }
+                    }
+                    public void insertUpdate(javax.swing.event.DocumentEvent e) { recalc(); }
+                    public void removeUpdate(javax.swing.event.DocumentEvent e) { recalc(); }
+                    public void changedUpdate(javax.swing.event.DocumentEvent e) { recalc(); }
+                });
+
+                btnCobrarFinal.addActionListener(ev -> {
+                    JOptionPane.showMessageDialog(dlg, "Venta registrada correctamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                    dlg.dispose();
+                });
+
+            } else if ("tarjeta".equals(m)) {
+                JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
+                row1.setOpaque(false);
+                row1.add(new JLabel("Referencia"));
+                panelCampos.add(row1);
+                JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT));
+                row2.setOpaque(false);
+                JTextField txtRef = new JTextField(18);
+                row2.add(txtRef);
+                panelCampos.add(row2);
+
+                btnCobrarFinal.addActionListener(ev -> {
+                    JOptionPane.showMessageDialog(dlg, "Venta registrada correctamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                    dlg.dispose();
+                });
+
+            } else if ("mixto".equals(m)) {
+                JPanel rowEf = new JPanel(new FlowLayout(FlowLayout.LEFT));
+                rowEf.setOpaque(false);
+                rowEf.add(new JLabel("Efectivo:"));
+                JTextField txtEfectivo = new JTextField(8);
+                rowEf.add(txtEfectivo);
+                panelCampos.add(rowEf);
+
+                JPanel rowTj = new JPanel(new FlowLayout(FlowLayout.LEFT));
+                rowTj.setOpaque(false);
+                rowTj.add(new JLabel("Tarjeta:  "));
+                JTextField txtTarjeta = new JTextField(8);
+                rowTj.add(txtTarjeta);
+                panelCampos.add(rowTj);
+
+                JLabel lblRestante = new JLabel("Restante: $" + totalFinal.setScale(2, java.math.RoundingMode.HALF_UP));
+                lblRestante.setForeground(Color.RED);
+                lblRestante.setFont(new Font("Arial", Font.BOLD, 13));
+                panelCampos.add(lblRestante);
+
+                javax.swing.event.DocumentListener dlMixto = new javax.swing.event.DocumentListener() {
+                    void recalc() {
+                        try {
+                            java.math.BigDecimal ef = parseBDStr(txtEfectivo.getText());
+                            java.math.BigDecimal tj = parseBDStr(txtTarjeta.getText());
+                            java.math.BigDecimal rest = totalFinal.subtract(ef).subtract(tj);
+                            if (rest.compareTo(java.math.BigDecimal.ZERO) >= 0) {
+                                lblRestante.setForeground(Color.RED);
+                                lblRestante.setText("Restante: $" + rest.setScale(2, java.math.RoundingMode.HALF_UP));
+                            } else {
+                                lblRestante.setForeground(new Color(0, 150, 0));
+                                lblRestante.setText("Cambio: $" + rest.abs().setScale(2, java.math.RoundingMode.HALF_UP));
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                    public void insertUpdate(javax.swing.event.DocumentEvent e) { recalc(); }
+                    public void removeUpdate(javax.swing.event.DocumentEvent e) { recalc(); }
+                    public void changedUpdate(javax.swing.event.DocumentEvent e) { recalc(); }
+                };
+                txtEfectivo.getDocument().addDocumentListener(dlMixto);
+                txtTarjeta.getDocument().addDocumentListener(dlMixto);
+
+                btnCobrarFinal.addActionListener(ev -> {
+                    JOptionPane.showMessageDialog(dlg, "Venta registrada correctamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                    dlg.dispose();
+                });
+            }
+
+            panelCampos.revalidate();
+            panelCampos.repaint();
+        };
+
+        btnEfectivo.addActionListener(ev -> {
+            metodoActual[0] = "efectivo";
+            btnEfectivo.setBackground(COLOR_NARANJA);
+            btnTarjeta.setBackground(inactivo);
+            btnMixto.setBackground(inactivo);
+            actualizarCampos.run();
+        });
+        btnTarjeta.addActionListener(ev -> {
+            metodoActual[0] = "tarjeta";
+            btnTarjeta.setBackground(COLOR_NARANJA);
+            btnEfectivo.setBackground(inactivo);
+            btnMixto.setBackground(inactivo);
+            actualizarCampos.run();
+        });
+        btnMixto.addActionListener(ev -> {
+            metodoActual[0] = "mixto";
+            btnMixto.setBackground(COLOR_NARANJA);
+            btnEfectivo.setBackground(inactivo);
+            btnTarjeta.setBackground(inactivo);
+            actualizarCampos.run();
+        });
+
+        dlg.setVisible(true);
+    }
+
+    private java.math.BigDecimal parseBDStr(String s) {
+        if (s == null || s.isBlank()) return java.math.BigDecimal.ZERO;
+        try { return new java.math.BigDecimal(s.replace("$","").replace(",","").trim()); }
+        catch (Exception e) { return java.math.BigDecimal.ZERO; }
     }
 
     private BigDecimal parseBD(Object val) {

@@ -2,6 +2,7 @@ package com.mycompany.ferreteria_alanis;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.Point;
 
 /**
  * Pantalla principal del sistema. Se muestra tras el login y actúa como menú
@@ -61,18 +62,62 @@ public class MenuPrincipal extends JFrame {
         nombre.setFont(new Font("Arial", Font.BOLD, 13));
         izquierda.add(nombre);
 
-        // Lado derecho: "Usuario: X" como botón sin acción
+        // Lado derecho: "Usuario: X" con popup de sesión
         JButton btnUsuario = new JButton("Usuario: " + nombreUsuario);
         btnUsuario.setBackground(new Color(255, 153, 0));
         btnUsuario.setForeground(Color.BLACK);
         btnUsuario.setFont(new Font("Arial", Font.BOLD, 13));
         btnUsuario.setFocusPainted(false);
         btnUsuario.setBorderPainted(false);
-        // Sin acción por ahora
+        btnUsuario.addActionListener(e -> mostrarPopupSesion(btnUsuario));
 
         header.add(izquierda, BorderLayout.WEST);
         header.add(btnUsuario, BorderLayout.EAST);
         return header;
+    }
+
+    private void mostrarPopupSesion(JButton origen) {
+        JDialog popup = new JDialog(this, false);
+        popup.setUndecorated(true);
+        popup.setLayout(new BorderLayout());
+
+        JPanel contenedor = new JPanel(new GridLayout(0, 1, 0, 0));
+        contenedor.setBackground(new Color(230, 230, 230));
+        contenedor.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+
+        JLabel titulo = new JLabel("Sesión", SwingConstants.CENTER);
+        titulo.setOpaque(true);
+        titulo.setBackground(new Color(255, 153, 0));
+        titulo.setFont(new Font("Arial", Font.BOLD, 13));
+        titulo.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+        JButton btnCerrar = new JButton("Cerrar sesión");
+        btnCerrar.setBackground(new Color(230, 230, 230));
+        btnCerrar.setFont(new Font("Arial", Font.PLAIN, 12));
+        btnCerrar.setFocusPainted(false);
+        btnCerrar.addActionListener(ev -> {
+            popup.dispose();
+            SesionActual.setNombreUsuario(null);
+            SesionActual.setRol(null);
+            new Login().setVisible(true);
+            dispose();
+        });
+
+        JButton btnCancelar = new JButton("Cancelar");
+        btnCancelar.setBackground(new Color(230, 230, 230));
+        btnCancelar.setFont(new Font("Arial", Font.PLAIN, 12));
+        btnCancelar.setFocusPainted(false);
+        btnCancelar.addActionListener(ev -> popup.dispose());
+
+        contenedor.add(titulo);
+        contenedor.add(btnCerrar);
+        contenedor.add(btnCancelar);
+        popup.add(contenedor);
+        popup.pack();
+
+        Point p = origen.getLocationOnScreen();
+        popup.setLocation(p.x, p.y + origen.getHeight());
+        popup.setVisible(true);
     }
 
     /** Panel central con los botones de módulos según el rol. */

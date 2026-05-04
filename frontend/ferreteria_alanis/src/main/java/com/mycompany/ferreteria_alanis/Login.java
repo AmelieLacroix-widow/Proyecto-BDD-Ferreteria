@@ -183,8 +183,12 @@ if ("ADMIN".equalsIgnoreCase(rol)) {
     JOptionPane.showMessageDialog(this, "Bienvenido USUARIO");
 }
 
+// Guardar sesión global ANTES de abrir el menú
+SesionActual.setNombreUsuario(user);
+SesionActual.setRol(rol);
+
 // abrir menú único dinámico
-MenuPrincipal menu = new MenuPrincipal(rol);
+MenuPrincipal menu = new MenuPrincipal(rol, user);
 menu.setVisible(true);
 
 this.dispose();
