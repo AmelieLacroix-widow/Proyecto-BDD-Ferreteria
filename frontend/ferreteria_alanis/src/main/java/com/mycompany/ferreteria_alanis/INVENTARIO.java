@@ -316,8 +316,8 @@ public class INVENTARIO extends JFrame {
                     final BigDecimal fCosto    = precioCosto;
                     final BigDecimal fVenta    = precioVenta;
                     final BigDecimal fExist    = existencia;
-                    final String    fCod       = n.path("codigoBarras").asText("");
-                    final String    fDesc      = n.path("descripcion").asText("");
+                    final String    fCod       = n.path("codigoBarras").asText();
+                    final String    fDesc      = n.path("descripcion").asText();
                     final String    fInvMin    = invMin != null
                         ? invMin.stripTrailingZeros().toPlainString() : "---";
                     final String    fInvMax    = invMax != null
