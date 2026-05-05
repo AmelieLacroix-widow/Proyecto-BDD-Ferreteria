@@ -80,9 +80,6 @@ public class UsuarioController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Usuario usuario) {
 
-        // 👇 AGREGA ESTO
-    System.out.println("USER: " + usuario.getNombreUsuario());
-    System.out.println("PASS: " + usuario.getContrasenaHash());
 
     var userOpt = service.autenticar(
             usuario.getNombreUsuario(),
