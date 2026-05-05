@@ -158,9 +158,7 @@ public class MenuPrincipal extends JFrame {
         }
 
         gbc.gridx = col++;
-        panel.add(crearBotonModulo("INVENTARIO", tamBoton, e -> {
-            JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Inventario", JOptionPane.INFORMATION_MESSAGE);
-        }), gbc);
+        panel.add(crearBotonModulo("INVENTARIO", tamBoton, e -> abrirInventario()), gbc);
 
         // Fila 2 (solo admin)
         if (esAdmin) {
@@ -201,6 +199,11 @@ public class MenuPrincipal extends JFrame {
 
     private void abrirProductos() {
         new PRODUCTOS(rol, nombreUsuario).setVisible(true);
+        this.dispose();
+    }
+
+    private void abrirInventario() {
+        new INVENTARIO(rol, nombreUsuario).setVisible(true);
         this.dispose();
     }
 
