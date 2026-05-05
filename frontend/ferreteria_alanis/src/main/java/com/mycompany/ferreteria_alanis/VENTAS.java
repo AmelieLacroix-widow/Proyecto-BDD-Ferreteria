@@ -588,23 +588,114 @@ public class VENTAS extends JFrame {
         DefaultTableModel model = getModeloActivo();
         String desc = (String) model.getValueAt(fila, COL_DESC);
 
-        String input = JOptionPane.showInputDialog(this,
-            "Descuento (%) para \"" + desc + "\":",
-            "Aplicar Descuento", JOptionPane.PLAIN_MESSAGE);
-        if (input == null || input.isBlank()) return;
-
-        try {
-            double pct = Double.parseDouble(input.replace("%", "").trim());
-            if (pct < 0 || pct > 100) throw new NumberFormatException();
-
-            model.setValueAt(pct + "%", fila, COL_DESCUENTO);
-            recalcularImporte(model, fila);
-            actualizarTotal(model);
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this,
-                "Ingresa un número válido entre 0 y 100.",
-                "Valor inválido", JOptionPane.ERROR_MESSAGE);
+        // ── DESPUÉS ─────────────────────────────────────────────────────────
+        final BigDecimal totalActual;
+        {
+            BigDecimal tmpTotal = BigDecimal.ZERO;
+            for (int i = 0; i < model.getRowCount(); i++)
+                tmpTotal = tmpTotal.add(parseBD(model.getValueAt(i, COL_IMPORTE)));
+            totalActual = tmpTotal;
         }
+
+        JDialog dlgDesc = new JDialog(this, "Descuento", true);
+dlgDesc.setSize(320, 200);
+dlgDesc.setLocationRelativeTo(this);
+dlgDesc.setLayout(new BorderLayout());
+dlgDesc.setResizable(false);
+
+JLabel headerDesc = new JLabel("  Descuento");
+headerDesc.setOpaque(true);
+headerDesc.setBackground(COLOR_NARANJA);
+headerDesc.setFont(new Font("Arial", Font.BOLD, 14));
+headerDesc.setPreferredSize(new Dimension(0, 30));
+dlgDesc.add(headerDesc, BorderLayout.NORTH);
+
+JPanel bodyDesc = new JPanel(new GridBagLayout());
+bodyDesc.setBackground(COLOR_FONDO);
+bodyDesc.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 16));
+GridBagConstraints gd = new GridBagConstraints();
+gd.insets = new Insets(5, 4, 5, 4);
+gd.anchor = GridBagConstraints.WEST;
+gd.fill   = GridBagConstraints.HORIZONTAL;
+gd.weightx = 1;
+
+// Fila 0: Total actual
+gd.gridx = 0; gd.gridy = 0; gd.gridwidth = 3;
+JLabel lblTotalActual = new JLabel("Total actual: $"
+    + totalActual.setScale(2, RoundingMode.HALF_UP));
+lblTotalActual.setFont(new Font("Arial", Font.PLAIN, 13));
+bodyDesc.add(lblTotalActual, gd);
+
+// Fila 1: Descuento % campo
+gd.gridy = 1; gd.gridwidth = 1; gd.weightx = 0;
+bodyDesc.add(new JLabel("Descuento:"), gd);
+
+gd.gridx = 1; gd.weightx = 1;
+JTextField txtPct = new JTextField("0.00", 6);
+bodyDesc.add(txtPct, gd);
+
+gd.gridx = 2; gd.weightx = 0;
+bodyDesc.add(new JLabel("%"), gd);
+
+// Fila 2: Nuevo Total (reactivo)
+gd.gridx = 0; gd.gridy = 2; gd.gridwidth = 3; gd.weightx = 1;
+JLabel lblNuevoTotal = new JLabel("Nuevo Total: $"
+    + totalActual.setScale(2, RoundingMode.HALF_UP));
+lblNuevoTotal.setFont(new Font("Arial", Font.PLAIN, 13));
+bodyDesc.add(lblNuevoTotal, gd);
+
+// Fila 3: botones Aplicar | Cancelar
+gd.gridy = 3; gd.gridwidth = 1; gd.weightx = 1;
+gd.gridx = 0;
+JButton btnAplicarDesc = new JButton("Aplicar");
+btnAplicarDesc.setBackground(COLOR_NARANJA);
+btnAplicarDesc.setFont(new Font("Arial", Font.BOLD, 13));
+bodyDesc.add(btnAplicarDesc, gd);
+
+gd.gridx = 2;
+JButton btnCancelarDesc = new JButton("Cancelar");
+btnCancelarDesc.setFont(new Font("Arial", Font.BOLD, 13));
+bodyDesc.add(btnCancelarDesc, gd);
+
+dlgDesc.add(bodyDesc, BorderLayout.CENTER);
+
+// Actualizar "Nuevo Total" en tiempo real mientras se escribe
+txtPct.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+    void recalc() {
+        try {
+            double pct = Double.parseDouble(txtPct.getText().replace("%","").trim());
+            if (pct < 0 || pct > 100) { lblNuevoTotal.setText("Nuevo Total: —"); return; }
+            BigDecimal factor  = BigDecimal.ONE.subtract(BigDecimal.valueOf(pct / 100.0));
+            BigDecimal nuevo   = totalActual.multiply(factor).setScale(2, RoundingMode.HALF_UP);
+            lblNuevoTotal.setText("Nuevo Total: $" + nuevo.toPlainString());
+        } catch (NumberFormatException ignored) {
+            lblNuevoTotal.setText("Nuevo Total: —");
+        }
+    }
+    public void insertUpdate(javax.swing.event.DocumentEvent e)  { recalc(); }
+    public void removeUpdate(javax.swing.event.DocumentEvent e)  { recalc(); }
+    public void changedUpdate(javax.swing.event.DocumentEvent e) { recalc(); }
+});
+
+btnCancelarDesc.addActionListener(ev -> dlgDesc.dispose());
+
+btnAplicarDesc.addActionListener(ev -> {
+    try {
+        double pct = Double.parseDouble(txtPct.getText().replace("%","").trim());
+        if (pct < 0 || pct > 100) throw new NumberFormatException();
+        model.setValueAt(pct + "%", fila, COL_DESCUENTO);
+        recalcularImporte(model, fila);
+        actualizarTotal(model);
+        dlgDesc.dispose();
+    } catch (NumberFormatException ex) {
+        JOptionPane.showMessageDialog(dlgDesc,
+            "Ingresa un número válido entre 0 y 100.",
+            "Valor inválido", JOptionPane.ERROR_MESSAGE);
+    }
+});
+
+dlgDesc.setVisible(true);
+// ── FIN DEL CAMBIO ───────────────────────────────────────────────────
     }
 
     // ─────────────────────────────────────────────────────────────────────────
