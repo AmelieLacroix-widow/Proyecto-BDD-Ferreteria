@@ -418,8 +418,8 @@ public class Historial extends JFrame {
                 SwingUtilities.invokeLater(() -> {
                     // Cabecera
                     lblFolioValor.setText(String.valueOf(obj.path("folioTicket").asInt()));
-                    lblCajeroValor.setText(
-                        textOrDefault(obj.path("usuario"), "nombreUsuario", "—"));
+                    // Muestra el nombre del usuario que hizo login (SesionActual).
+                    lblCajeroValor.setText(nombreUsuario);
                     lblTotalValor.setText(
                         "$" + String.format("%.2f", obj.path("totalNeto").asDouble()));
 
@@ -444,7 +444,8 @@ public class Historial extends JFrame {
                         String desc = d.path("producto").path("descripcion").asText();
                         if (desc.isBlank()) desc = cod;
 
-                        String cantStr = textOrDefault(d, "cantidad", "0");
+                        String cantStr = d.path("cantidad").asText();
+                        if (cantStr == null || cantStr.isBlank()) cantStr = "0";
                         BigDecimal cant;
                         try { cant = new BigDecimal(cantStr); }
                         catch (NumberFormatException e) { cant = BigDecimal.ZERO; }
