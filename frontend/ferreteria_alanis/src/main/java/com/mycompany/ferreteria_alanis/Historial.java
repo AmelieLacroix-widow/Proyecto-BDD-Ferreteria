@@ -127,17 +127,24 @@ public class Historial extends JFrame {
             dispose();
         });
 
+        btnInventario.addActionListener(e -> {
+        new INVENTARIO(rol, nombreUsuario).setVisible(true);
+        dispose();
+        });
+
         if ("ADMIN".equalsIgnoreCase(rol)) {
             btnProductos.addActionListener(e -> {
                 new PRODUCTOS(rol, nombreUsuario).setVisible(true);
                 dispose();
             });
-            btnCorte.addActionListener(e ->
-                JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Corte",
-                    JOptionPane.INFORMATION_MESSAGE));
-            btnUsuario.addActionListener(e ->
-                JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Usuario",
-                    JOptionPane.INFORMATION_MESSAGE));
+            btnCorte.addActionListener(e -> {
+            new CORTE(rol, nombreUsuario).setVisible(true);
+            dispose();
+            });
+            btnUsuario.addActionListener(e -> {
+            new USUARIO(rol, nombreUsuario).setVisible(true);
+            dispose();
+            });
         } else {
             btnProductos.setVisible(false);
             btnCorte.setVisible(false);
