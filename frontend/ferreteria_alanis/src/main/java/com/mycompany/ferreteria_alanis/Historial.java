@@ -374,23 +374,20 @@ public class Historial extends JFrame {
                 SwingUtilities.invokeLater(() -> {
                     modeloFolios.setRowCount(0);
                     for (JsonNode t : array) {
-                        // Sólo mostrar tickets de tipo "Ticket" con estado "Pagado"
+                        // Mostrar solo tickets de tipo "Ticket" (no Re-Tickets ni Devoluciones)
                         String tipo   = t.path("tipoDocumento").asText();
                         String estado = t.path("estadoDocumento").asText();
-                        if (!"Ticket".equals(tipo) || !"Pagado".equals(estado)) continue;
+                        if (!"Ticket".equalsIgnoreCase(tipo)) continue;
+                        // Mostrar Pagados y también Abiertos (por si el pago aún está en proceso)
+                        if (!"Pagado".equalsIgnoreCase(estado) && !"Abierto".equalsIgnoreCase(estado)) continue;
 
                         int folio = t.path("folioTicket").asInt();
-
-                        // La hora real del modelo es horaTransaccion
                         String hora = t.path("horaTransaccion").asText();
-
                         double total = t.path("totalNeto").asDouble(0);
 
-                        // Los detalles vienen lazy → no están aquí, mostramos 0 artículos
-                        // Se cargarán al seleccionar el folio
                         modeloFolios.addRow(new Object[]{
                             folio,
-                            0,          // artículos: se rellena al seleccionar
+                            0,
                             hora.isBlank() ? "—" : formatearHora(hora),
                             "$" + String.format("%.2f", total)
                         });
@@ -430,15 +427,16 @@ public class Historial extends JFrame {
                     lblFolioValor.setText(String.valueOf(obj.path("folioTicket").asInt()));
 
                     // Cajero: objeto anidado usuario.nombreUsuario
-                    String cajero = textOrDefault(obj.path("usuario"), "nombreUsuario", "—");
+                    String cajero = obj.path("usuario").path("nombreUsuario").asText();
+                    if (cajero == null || cajero.isEmpty()) cajero = "—";
                     lblCajeroValor.setText(cajero);
 
                     lblTotalValor.setText(
                         "$" + String.format("%.2f", obj.path("totalNeto").asDouble()));
 
                     // Campo real del modelo: fechaTransaccion
-                    String fechaStr = textOrDefault(obj, "fechaTransaccion",
-                        LocalDate.now().toString());
+                    String fechaStr = obj.path("fechaTransaccion").asText();
+                    if (fechaStr == null || fechaStr.isEmpty()) fechaStr = LocalDate.now().toString();
                     try {
                         lblFechaTicket.setText(
                             formatearFechaLarga(LocalDate.parse(fechaStr)));
@@ -451,9 +449,9 @@ public class Historial extends JFrame {
                     for (JsonNode d : detalles) {
                         String cod  = d.path("codigoBarras").asText();
                         String desc = d.path("producto").path("descripcion").asText();
-                        if (desc.isEmpty()) desc = cod;
+                        if (desc == null || desc.isEmpty()) desc = cod;
                         java.math.BigDecimal cant =
-                            java.math.BigDecimal.valueOf(d.path("cantidad").asDouble(0.0));
+                            new java.math.BigDecimal(d.path("cantidad").asText().isEmpty() ? "0" : d.path("cantidad").asText());
                         totalArts += cant.intValue();
                         modeloDetalle.addRow(new Object[]{
                             cod,

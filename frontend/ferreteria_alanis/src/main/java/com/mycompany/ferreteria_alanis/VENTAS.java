@@ -885,57 +885,61 @@ public class VENTAS extends JFrame {
 
                     // ── Paso 1: crear el Ticket ──────────────────────────
                     publish("Creando ticket…");
-                    java.time.LocalDate hoy   = java.time.LocalDate.now();
-                    java.time.LocalTime ahora = java.time.LocalTime.now();
-                    // totalBruto = totalNeto (sin descuento global por ahora)
+                    java.time.LocalDate hoy = java.time.LocalDate.now();
+                    java.time.LocalTime ahoraT = java.time.LocalTime.now();
+                    // Formatear hora explicitamente HH:mm:ss (LocalTime.toString puede omitir segundos)
+                    String horaStr = String.format("%02d:%02d:%02d",
+                        ahoraT.getHour(), ahoraT.getMinute(), ahoraT.getSecond());
+                    // BigDecimal con escala explicita y toPlainString para evitar notacion cientifica
+                    // porcentajeDescuento tiene scale=3 y totalDescuento scale=2 en el modelo
                     String jsonTicket = "{"
                         + "\"tipoDocumento\":\"Ticket\","
-                        + "\"estadoDocumento\":\"Pagado\","
+                        + "\"estadoDocumento\":\"Abierto\","
                         + "\"fechaTransaccion\":\"" + hoy + "\","
-                        + "\"horaTransaccion\":\"" + ahora.toString().substring(0, 8) + "\","
-                        + "\"totalBruto\":"          + totalFinal + ","
-                        + "\"porcentajeDescuento\":0,"
-                        + "\"totalDescuento\":0,"
-                        + "\"totalNeto\":"            + totalFinal + ","
+                        + "\"horaTransaccion\":\"" + horaStr + "\","
+                        + "\"totalBruto\":" + totalFinal.toPlainString() + ","
+                        + "\"porcentajeDescuento\":0.000,"
+                        + "\"totalDescuento\":0.00,"
+                        + "\"totalNeto\":" + totalFinal.toPlainString() + ","
                         + "\"usuario\":{\"idUsuario\":" + idUsuario + "}"
                         + "}";
                     String respTicket = api.post("/tickets", jsonTicket);
                     com.fasterxml.jackson.databind.JsonNode nTicket = mapper.readTree(respTicket);
                     int folio = nTicket.path("folioTicket").asInt();
-                    if (folio == 0) throw new Exception("El backend no devolvió un folio válido.");
+                    if (folio == 0) throw new Exception("El backend no devolvio un folio valido.");
 
-                    // ── Paso 2: registrar cada renglón ───────────────────
+                    // ── Paso 2: registrar cada renglon ───────────────────
                     publish("Registrando productos…");
                     for (var r : renglones) {
+                        // descuentoProducto scale=3 → siempre con decimales
                         String jsonDet = "{"
                             + "\"codigoBarras\":\"" + r.codigo() + "\","
-                            + "\"cantidad\":"        + r.cantidad() + ","
-                            + "\"precioUnitarioVenta\":" + r.precio() + ","
-                            + "\"importe\":"         + r.importe() + ","
-                            + "\"descuentoProducto\":" + r.descuento()
+                            + "\"cantidad\":" + r.cantidad().toPlainString() + ","
+                            + "\"precioUnitarioVenta\":" + r.precio().toPlainString() + ","
+                            + "\"importe\":" + r.importe().toPlainString() + ","
+                            + "\"descuentoProducto\":0.000"
                             + "}";
                         api.post("/tickets/" + folio + "/detalle", jsonDet);
                     }
 
                     // ── Paso 3: registrar el pago ────────────────────────
+                    // El PagoController asigna ticket internamente via folio en la URL
+                    // Solo mandamos los montos; no incluimos el objeto ticket en el body
                     publish("Registrando pago…");
-                    // Construir JSON de Pago con los campos NOT NULL del modelo
-                    // (todos los montos que no aplican van a 0)
-                    java.math.BigDecimal cero = java.math.BigDecimal.ZERO;
                     String jsonPago = "{"
-                        + "\"metodoPago\":\""          + metodoActual[0]    + "\","
-                        + "\"montoEfectivo\":"          + montoEfectivo[0]   + ","
-                        + "\"pagoCon\":"                + pagoCon[0]         + ","
-                        + "\"cambio\":"                 + cambio[0]          + ","
-                        + "\"montoTarjeta\":"           + montoTarjeta[0]    + ","
-                        + "\"referenciaTarjeta\":\""    + refTarjeta[0]      + "\","
+                        + "\"metodoPago\":\"" + metodoActual[0] + "\","
+                        + "\"montoEfectivo\":" + montoEfectivo[0].toPlainString() + ","
+                        + "\"pagoCon\":" + pagoCon[0].toPlainString() + ","
+                        + "\"cambio\":" + cambio[0].toPlainString() + ","
+                        + "\"montoTarjeta\":" + montoTarjeta[0].toPlainString() + ","
+                        + "\"referenciaTarjeta\":\"" + esc(refTarjeta[0]) + "\","
                         + "\"voucherTarjeta\":false,"
-                        + "\"montoTransferencia\":"     + montoTransf[0]     + ","
+                        + "\"montoTransferencia\":" + montoTransf[0].toPlainString() + ","
                         + "\"referenciaTransferencia\":\"\","
                         + "\"voucherTransferencia\":false,"
-                        + "\"montoCheque\":"            + cero               + ","
+                        + "\"montoCheque\":0.00,"
                         + "\"referenciaCheque\":\"\","
-                        + "\"montoCredito\":"           + cero
+                        + "\"montoCredito\":0.00"
                         + "}";
                     api.post("/tickets/" + folio + "/pago", jsonPago);
 
@@ -1135,5 +1139,9 @@ public class VENTAS extends JFrame {
         if (val == null) return BigDecimal.ZERO;
         try { return new BigDecimal(val.toString()); }
         catch (NumberFormatException e) { return BigDecimal.ZERO; }
+    }
+
+    private String esc(String s) {
+        return s == null ? "" : s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }
