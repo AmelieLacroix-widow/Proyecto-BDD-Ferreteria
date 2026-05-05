@@ -169,9 +169,7 @@ public class MenuPrincipal extends JFrame {
             }), gbc);
 
             gbc.gridx = 1;
-            panel.add(crearBotonModulo("USUARIO", tamBoton, e -> {
-                JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Usuario", JOptionPane.INFORMATION_MESSAGE);
-            }), gbc);
+            panel.add(crearBotonModulo("USUARIO", tamBoton, e -> abrirUsuario()), gbc);
         }
 
         return panel;
@@ -204,6 +202,11 @@ public class MenuPrincipal extends JFrame {
 
     private void abrirInventario() {
         new INVENTARIO(rol, nombreUsuario).setVisible(true);
+        this.dispose();
+    }
+
+    private void abrirUsuario() {
+        new USUARIO(rol, nombreUsuario).setVisible(true);
         this.dispose();
     }
 

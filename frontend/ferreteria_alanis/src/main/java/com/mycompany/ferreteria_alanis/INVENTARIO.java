@@ -132,9 +132,10 @@ public class INVENTARIO extends JFrame {
             JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Corte",
                 JOptionPane.INFORMATION_MESSAGE));
         JButton btnUsuario = crearBtnNav("Usuario", false);
-        btnUsuario.addActionListener(e ->
-            JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Usuario",
-                JOptionPane.INFORMATION_MESSAGE));
+        btnUsuario.addActionListener(e -> {
+        new USUARIO(rol, nombreUsuario).setVisible(true);
+        dispose();
+        });
 
         if ("ADMIN".equalsIgnoreCase(rol)) {
             derMod.add(btnCorte);

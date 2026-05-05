@@ -157,9 +157,10 @@ public class VENTAS extends JFrame {
                 JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Corte",
                     JOptionPane.INFORMATION_MESSAGE));
             JButton btnUsuario = crearBtnNav("Usuario", false);
-            btnUsuario.addActionListener(e ->
-                JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Usuario",
-                    JOptionPane.INFORMATION_MESSAGE));
+            btnUsuario.addActionListener(e -> {
+            new USUARIO(rol, nombreUsuario).setVisible(true);
+            dispose();
+            });
             derModulos.add(btnCorte);
             derModulos.add(btnUsuario);
             modulos.add(derModulos, BorderLayout.EAST);

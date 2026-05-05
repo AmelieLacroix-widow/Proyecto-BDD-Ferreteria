@@ -153,9 +153,10 @@ public class PRODUCTOS extends JFrame {
             JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Corte",
                 JOptionPane.INFORMATION_MESSAGE));
         JButton btnUsuario = crearBtnNav("Usuario", false);
-        btnUsuario.addActionListener(e ->
-            JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Usuario",
-                JOptionPane.INFORMATION_MESSAGE));
+        btnUsuario.addActionListener(e -> {
+        new USUARIO(rol, nombreUsuario).setVisible(true);
+        dispose();
+        });
         derMod.add(btnCorte);
         derMod.add(btnUsuario);
         modulos.add(derMod, BorderLayout.EAST);
