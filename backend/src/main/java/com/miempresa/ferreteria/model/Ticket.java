@@ -1,10 +1,16 @@
 package com.miempresa.ferreteria.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+// FIX: @JsonIgnoreProperties a nivel de clase evita que Jackson falle al intentar
+// serializar el proxy Hibernate cuando este Ticket es referenciado desde
+// DetalleTicket, Pago u otras entidades con FetchType.LAZY.
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "TICKET")
 public class Ticket {
@@ -29,7 +35,12 @@ public class Ticket {
     @Column(name = "hora_transaccion", nullable = false)
     private LocalTime horaTransaccion;
 
-    // Auto-referencia: un Re-Ticket o Devolución puede apuntar al ticket original
+    // FIX: @JsonIgnore en la auto-referencia.
+    // Sin esto, Jackson sigue la cadena: Ticket → ticketReferencia(Ticket)
+    // → ticketReferencia(Ticket) → ... hasta un StackOverflowError o un JSON
+    // kilométrico. El folio de referencia ya está disponible como campo plano
+    // si se necesita; agregar un campo folioReferencia simple es la alternativa.
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "folio_referencia")
     private Ticket ticketReferencia;
@@ -46,12 +57,15 @@ public class Ticket {
     @Column(name = "total_neto", precision = 10, scale = 2, nullable = false)
     private BigDecimal totalNeto;
 
-    // Relación ManyToOne con Cliente (nullable: una venta puede ser sin cliente)
+    // Relación ManyToOne con Cliente (nullable: una venta puede ser sin cliente).
+    // Se mantiene serializable para endpoints que necesiten el nombre del cliente.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_cliente")
     private Cliente cliente;
 
-    // Relación ManyToOne con Usuario (nullable = false: toda venta requiere cajero)
+    // Relación ManyToOne con Usuario (nullable = false: toda venta requiere cajero).
+    // Se serializa para que Historial.java pueda leer usuario.nombreUsuario.
+    // La contrasenaHash está protegida con @JsonIgnore directamente en Usuario.java.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario", nullable = false)
     private Usuario usuario;

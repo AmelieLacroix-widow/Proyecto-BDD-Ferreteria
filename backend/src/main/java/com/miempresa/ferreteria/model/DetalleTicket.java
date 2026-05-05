@@ -1,5 +1,7 @@
 package com.miempresa.ferreteria.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 
@@ -21,11 +23,25 @@ public class DetalleTicket {
     @Column(name = "codigo_barras", length = 50)
     private String codigoBarras;
 
-    // Relaciones ManyToOne para navegar a los objetos completos
+    // FIX: @JsonIgnore en el campo ticket.
+    // Sin esto, al serializar un DetalleTicket, Jackson serializa el Ticket
+    // completo (con usuario, cliente, ticketReferencia) dentro de CADA renglón.
+    // Además de ser datos redundantes (el folio ya está en el campo folioTicket),
+    // creaba una cadena de objetos anidados innecesaria y peligrosa.
+    // El frontend (Historial.java) no necesita el objeto Ticket aquí; ya lo
+    // obtiene con GET /tickets/{folio} en una llamada separada.
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "folio_ticket", insertable = false, updatable = false)
     private Ticket ticket;
 
+    // FIX: @JsonIgnoreProperties en el campo producto.
+    // Permite que Jackson serialice el objeto Producto correctamente aunque sea
+    // un proxy Hibernate (FetchType.LAZY). Sin esto, Jackson lanzaba
+    // "No serializer found for class ...HibernateProxy" o dejaba el campo nulo,
+    // impidiendo que Historial.java leyera producto.descripcion.
+    // La descripción se obtiene mediante el JOIN FETCH agregado en el repositorio.
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "codigo_barras", insertable = false, updatable = false)
     private Producto producto;

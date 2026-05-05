@@ -23,13 +23,21 @@ import java.util.Optional;
 public interface DetalleTicketRepository extends JpaRepository<DetalleTicket, DetalleTicketId> {
 
     /**
-     * Devuelve todos los renglones de un ticket.
-     * Operación central del módulo de Ventas: construye la tabla de productos
-     * visible en pantalla para un ticket abierto.
+     * Devuelve todos los renglones de un ticket, incluyendo el Producto completo.
      *
-     * SELECT * FROM DETALLE_TICKET WHERE folio_ticket = ?
+     * FIX: Se reemplazó el método derivado (findByFolioTicket) por una query JPQL
+     * con LEFT JOIN FETCH d.producto. Sin este JOIN FETCH, el campo producto llegaba
+     * como proxy Hibernate no inicializado (FetchType.LAZY). Jackson no podía
+     * serializar la descripción y Historial.java mostraba el código en lugar del
+     * nombre del producto. Con el JOIN FETCH, producto viaja en el mismo SELECT,
+     * sin importar si open-in-view está activo o no.
+     *
+     * SELECT d.*, p.* FROM DETALLE_TICKET d
+     * LEFT JOIN PRODUCTO p ON d.codigo_barras = p.codigo_barras
+     * WHERE d.folio_ticket = :folio
      */
-    List<DetalleTicket> findByFolioTicket(Integer folioTicket);
+    @Query("SELECT d FROM DetalleTicket d LEFT JOIN FETCH d.producto WHERE d.folioTicket = :folio")
+    List<DetalleTicket> findByFolioTicket(@Param("folio") Integer folio);
 
     /**
      * Busca un renglón específico de un ticket por código de barras.

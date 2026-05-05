@@ -10,6 +10,7 @@ import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -19,28 +20,26 @@ import java.util.logging.Logger;
 
 /**
  * Pantalla de Historial de Ventas.
- * Endpoints que el backend debe exponer:
  *
- *   GET /ventas/historial?fecha=YYYY-MM-DD
- *        Devuelve: [{folioTicket, articulos, horaTicket, totalNeto}, ...]
+ * Endpoints reales que consume:
+ *   GET /tickets/fecha?fecha=YYYY-MM-DD
+ *        Devuelve List<Ticket> del dia (filtrado a tipo=Ticket y estado=Pagado)
  *
- *   GET /ventas/historial/{folio}
- *        Devuelve: {folioTicket, nombreUsuario, totalNeto, fechaTicket,
- *                   porcentajeDescuento,
- *                   detalles:[{codigoBarras, nombreProducto,
- *                              precioUnitarioVenta, cantidad,
- *                              importe, descuentoProducto}]}
+ *   GET /tickets/{folio}
+ *        Devuelve el objeto Ticket con usuario.nombreUsuario anidado
+ *
+ *   GET /tickets/{folio}/detalle
+ *        Devuelve List<DetalleTicket> con producto.descripcion gracias al
+ *        JOIN FETCH agregado en DetalleTicketRepository.findByFolioTicket()
  */
 public class Historial extends JFrame {
 
-    private static final Logger logger =
-            Logger.getLogger(Historial.class.getName());
+    private static final Logger logger = Logger.getLogger(Historial.class.getName());
 
-    private final ApiClient api = ApiClient.getInstance();
+    private final ApiClient api    = ApiClient.getInstance();
     private final ObjectMapper mapper = api.getMapper();
 
     private final String rol;
-    // nombreUsuario se obtiene de SesionActual para pasarlo al navegar a VENTAS
     private final String nombreUsuario;
 
     private static final Color NARANJA       = new Color(255, 153, 0);
@@ -49,21 +48,20 @@ public class Historial extends JFrame {
 
     private LocalDate fechaActual = LocalDate.now();
 
-    private JTextField txtBusqueda;
-    private JLabel lblFechaValor;
-    private JTable tablaFolios;
+    private JTextField     txtBusqueda;
+    private JLabel         lblFechaValor;
+    private JTable         tablaFolios;
     private DefaultTableModel modeloFolios;
 
-    private JLabel lblFolioValor;
-    private JLabel lblCajeroValor;
-    private JLabel lblTotalValor;
-    private JLabel lblFechaTicket;
-    private JTable tablaDetalle;
+    private JLabel         lblFolioValor;
+    private JLabel         lblCajeroValor;
+    private JLabel         lblTotalValor;
+    private JLabel         lblFechaTicket;
+    private JTable         tablaDetalle;
     private DefaultTableModel modeloDetalle;
 
-    // ─── Constructor corregido: ahora recibe también nombreUsuario ───────────
     public Historial(String rol, String nombreUsuario) {
-        this.rol = rol;
+        this.rol           = rol;
         this.nombreUsuario = nombreUsuario;
         setTitle("Ferretería e Instalaciones Eléctricas Alanís");
         setSize(900, 580);
@@ -73,15 +71,16 @@ public class Historial extends JFrame {
         cargarHistorialDelDia();
     }
 
-    // ─── Compatibilidad: si alguien llama Historial(rol) usa SesionActual ───
+    /** Compatibilidad: si alguien llama Historial(rol) toma el usuario de SesionActual. */
     public Historial(String rol) {
         this(rol, SesionActual.getNombreUsuario());
     }
 
-    //  CONSTRUCCIÓN DE LA INTERFAZ
+    // ─── CONSTRUCCIÓN DE LA INTERFAZ ─────────────────────────────────────────
 
     private void initComponents() {
 
+        // ── Barra superior: logo + empresa + botón usuario ─────────────────
         JPanel barraTop = new JPanel(new BorderLayout());
         barraTop.setBackground(GRIS);
         barraTop.setPreferredSize(new Dimension(0, 55));
@@ -98,7 +97,6 @@ public class Historial extends JFrame {
         JLabel nombreEmpresa = new JLabel("  Ferretería e Instalaciones Eléctricas Alanís");
         nombreEmpresa.setFont(new Font("Arial", Font.BOLD, 13));
 
-        // Botón "Usuario: X" en la esquina superior derecha
         JButton btnUsuarioInfo = new JButton("Usuario: " + nombreUsuario);
         btnUsuarioInfo.setBackground(NARANJA);
         btnUsuarioInfo.setFont(new Font("Arial", Font.BOLD, 12));
@@ -113,40 +111,30 @@ public class Historial extends JFrame {
         barraTop.add(izqTop, BorderLayout.WEST);
         barraTop.add(btnUsuarioInfo, BorderLayout.EAST);
 
+        // ── Barra de módulos ───────────────────────────────────────────────
         JPanel barraModulos = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 3));
         barraModulos.setBackground(GRIS);
-        barraModulos.setBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, Color.BLACK));
+        barraModulos.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.BLACK));
 
-        JButton btnVentas = botonModulo("VENTAS");
-        // CORRECCIÓN: se pasan los dos parámetros requeridos por VENTAS
-        btnVentas.addActionListener(e -> {
-            new VENTAS(rol, nombreUsuario).setVisible(true);
-            this.dispose();
-        });
-
+        JButton btnVentas    = botonModulo("VENTAS");
         JButton btnProductos = botonModulo("PRODUCTOS");
         JButton btnInventario = botonModulo("INVENTARIO");
-        JButton btnCorte = botonModulo("CORTE");
-        JButton btnUsuario = botonModulo("USUARIO");
+        JButton btnCorte     = botonModulo("CORTE");
+        JButton btnUsuario   = botonModulo("USUARIO");
 
-        barraModulos.add(btnVentas);
-        barraModulos.add(btnProductos);
-        barraModulos.add(btnInventario);
-        barraModulos.add(btnCorte);
-        barraModulos.add(btnUsuario);
+        btnVentas.addActionListener(e -> {
+            new VENTAS(rol, nombreUsuario).setVisible(true);
+            dispose();
+        });
 
         if ("ADMIN".equalsIgnoreCase(rol)) {
-            btnProductos.setVisible(true);
             btnProductos.addActionListener(e -> {
                 new PRODUCTOS(rol, nombreUsuario).setVisible(true);
-                this.dispose();
+                dispose();
             });
-            btnCorte.setVisible(true);
             btnCorte.addActionListener(e ->
                 JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Corte",
                     JOptionPane.INFORMATION_MESSAGE));
-            btnUsuario.setVisible(true);
             btnUsuario.addActionListener(e ->
                 JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Usuario",
                     JOptionPane.INFORMATION_MESSAGE));
@@ -156,6 +144,13 @@ public class Historial extends JFrame {
             btnUsuario.setVisible(false);
         }
 
+        barraModulos.add(btnVentas);
+        barraModulos.add(btnProductos);
+        barraModulos.add(btnInventario);
+        barraModulos.add(btnCorte);
+        barraModulos.add(btnUsuario);
+
+        // ── Franja naranja "Ventas" + subtabs Ticket / Historial ──────────
         JPanel barraNaranja = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 3));
         barraNaranja.setBackground(NARANJA);
         JLabel lblVentas = new JLabel("Ventas");
@@ -164,19 +159,18 @@ public class Historial extends JFrame {
 
         JPanel barraSubtabs = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
         barraSubtabs.setBackground(GRIS);
-        barraSubtabs.setBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, Color.BLACK));
+        barraSubtabs.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Color.BLACK));
 
         JButton btnTicket = new JButton("Ticket");
         btnTicket.setBackground(GRIS);
         btnTicket.setFont(new Font("Arial", Font.PLAIN, 12));
         btnTicket.setFocusPainted(false);
-        // CORRECCIÓN: se pasan los dos parámetros requeridos por VENTAS
         btnTicket.addActionListener(e -> {
             new VENTAS(rol, nombreUsuario).setVisible(true);
-            this.dispose();
+            dispose();
         });
 
+        // Historial es la pestaña activa → resaltado
         JButton btnHistorial = new JButton("Historial");
         btnHistorial.setBackground(NARANJA_CLARO);
         btnHistorial.setFont(new Font("Arial", Font.BOLD, 12));
@@ -192,6 +186,7 @@ public class Historial extends JFrame {
         norte.add(barraNaranja);
         norte.add(barraSubtabs);
 
+        // ── Layout principal: split izquierda/derecha ─────────────────────
         JSplitPane split = new JSplitPane(
                 JSplitPane.HORIZONTAL_SPLIT,
                 crearPanelIzquierdo(),
@@ -205,6 +200,7 @@ public class Historial extends JFrame {
         add(split, BorderLayout.CENTER);
     }
 
+    // ── Panel izquierdo: búsqueda + tabla de folios ────────────────────────
     private JPanel crearPanelIzquierdo() {
         JPanel p = new JPanel(new BorderLayout(0, 6));
         p.setBackground(GRIS);
@@ -215,24 +211,17 @@ public class Historial extends JFrame {
 
         JPanel panelBusqueda = new JPanel(new BorderLayout(4, 0));
         panelBusqueda.setBackground(GRIS);
-        JLabel lupa = new JLabel("🔍");
         txtBusqueda = new JTextField();
-        txtBusqueda.setBorder(
-                BorderFactory.createLineBorder(Color.DARK_GRAY));
+        txtBusqueda.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
         txtBusqueda.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyReleased(KeyEvent e) {
+            @Override public void keyReleased(KeyEvent e) {
                 filtrarPorFolio(txtBusqueda.getText().trim());
             }
         });
+        panelBusqueda.add(new JLabel("🔍"), BorderLayout.WEST);
+        panelBusqueda.add(txtBusqueda,      BorderLayout.CENTER);
 
-        panelBusqueda.add(lupa, BorderLayout.WEST);
-        panelBusqueda.add(txtBusqueda, BorderLayout.CENTER);
-
-        JPanel panelFecha = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-        panelFecha.setBackground(GRIS);
-        panelFecha.add(new JLabel("Del día:"));
-
+        // Selector de fecha
         lblFechaValor = new JLabel(formatearFechaLarga(fechaActual));
         lblFechaValor.setFont(new Font("Arial", Font.PLAIN, 11));
         lblFechaValor.setBorder(BorderFactory.createLineBorder(Color.GRAY));
@@ -253,22 +242,24 @@ public class Historial extends JFrame {
             cargarHistorialDelDia();
         });
 
+        JPanel panelFecha = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        panelFecha.setBackground(GRIS);
+        panelFecha.add(new JLabel("Del día:"));
         panelFecha.add(lblFechaValor);
         panelFecha.add(btnFlecha);
         panelFecha.add(btnHoy);
 
         JPanel norte = new JPanel(new BorderLayout(0, 4));
         norte.setBackground(GRIS);
-        norte.add(titulo, BorderLayout.NORTH);
+        norte.add(titulo,        BorderLayout.NORTH);
         norte.add(panelBusqueda, BorderLayout.CENTER);
-        norte.add(panelFecha, BorderLayout.SOUTH);
+        norte.add(panelFecha,    BorderLayout.SOUTH);
 
-        String[] colsFolios = {"Folio", "Arts", "Hora", "Total"};
-        modeloFolios = new DefaultTableModel(colsFolios, 0) {
-            @Override
-            public boolean isCellEditable(int row, int col) { return false; }
+        // Tabla de folios
+        String[] cols = {"Folio", "Arts", "Hora", "Total"};
+        modeloFolios = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
         };
-
         tablaFolios = new JTable(modeloFolios);
         estilizarTabla(tablaFolios);
         tablaFolios.getColumnModel().getColumn(0).setPreferredWidth(60);
@@ -276,11 +267,10 @@ public class Historial extends JFrame {
         tablaFolios.getColumnModel().getColumn(2).setPreferredWidth(80);
         tablaFolios.getColumnModel().getColumn(3).setPreferredWidth(90);
 
+        // Al seleccionar un folio, carga su detalle en el panel derecho
         tablaFolios.getSelectionModel().addListSelectionListener(ev -> {
-            if (!ev.getValueIsAdjusting()
-                    && tablaFolios.getSelectedRow() >= 0) {
-                Object val = modeloFolios.getValueAt(
-                        tablaFolios.getSelectedRow(), 0);
+            if (!ev.getValueIsAdjusting() && tablaFolios.getSelectedRow() >= 0) {
+                Object val = modeloFolios.getValueAt(tablaFolios.getSelectedRow(), 0);
                 cargarDetalleTicket(Integer.parseInt(val.toString()));
             }
         });
@@ -288,11 +278,12 @@ public class Historial extends JFrame {
         JScrollPane scroll = new JScrollPane(tablaFolios);
         scroll.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
 
-        p.add(norte, BorderLayout.NORTH);
+        p.add(norte,  BorderLayout.NORTH);
         p.add(scroll, BorderLayout.CENTER);
         return p;
     }
 
+    // ── Panel derecho: encabezado del ticket + tabla de renglones ─────────
     private JPanel crearPanelDerecho() {
         JPanel p = new JPanel(new BorderLayout(0, 8));
         p.setBackground(Color.WHITE);
@@ -306,40 +297,35 @@ public class Historial extends JFrame {
         JLabel tTicket = new JLabel("Ticket");
         tTicket.setFont(new Font("Arial", Font.BOLD, 15));
 
-        lblFolioValor = new JLabel("—");
+        lblFolioValor  = new JLabel("—");
         lblCajeroValor = new JLabel("—");
-        lblTotalValor = new JLabel("—");
+        lblTotalValor  = new JLabel("—");
         lblTotalValor.setFont(new Font("Arial", Font.BOLD, 14));
         lblFechaTicket = new JLabel("—");
         lblFechaTicket.setFont(new Font("Arial", Font.BOLD, 12));
 
-        g.gridx = 0; g.gridy = 0; g.gridwidth = 4;
-        g.anchor = GridBagConstraints.CENTER;
+        g.gridx = 0; g.gridy = 0; g.gridwidth = 4; g.anchor = GridBagConstraints.CENTER;
         encabezado.add(tTicket, g);
 
         g.gridwidth = 1; g.anchor = GridBagConstraints.WEST;
-        g.gridx = 0; g.gridy = 1; encabezado.add(new JLabel("Folio:"), g);
-        g.gridx = 1; encabezado.add(lblFolioValor, g);
-        g.gridx = 2; encabezado.add(new JLabel("Total:"), g);
-        g.gridx = 3; encabezado.add(lblTotalValor, g);
-        g.gridx = 0; g.gridy = 2; encabezado.add(new JLabel("Cajero:"), g);
-        g.gridx = 1; g.gridwidth = 3; encabezado.add(lblCajeroValor, g);
-        g.gridx = 0; g.gridy = 3; g.gridwidth = 4;
-        g.anchor = GridBagConstraints.CENTER;
+        g.gridx = 0; g.gridy = 1; encabezado.add(new JLabel("Folio:"),  g);
+        g.gridx = 1;               encabezado.add(lblFolioValor,         g);
+        g.gridx = 2;               encabezado.add(new JLabel("Total:"),  g);
+        g.gridx = 3;               encabezado.add(lblTotalValor,         g);
+        g.gridx = 0; g.gridy = 2;  encabezado.add(new JLabel("Cajero:"), g);
+        g.gridx = 1; g.gridwidth = 3; encabezado.add(lblCajeroValor,     g);
+        g.gridx = 0; g.gridy = 3; g.gridwidth = 4; g.anchor = GridBagConstraints.CENTER;
         encabezado.add(lblFechaTicket, g);
 
         JPanel norte = new JPanel(new BorderLayout(0, 4));
         norte.setBackground(Color.WHITE);
-        norte.add(encabezado, BorderLayout.CENTER);
+        norte.add(encabezado,        BorderLayout.CENTER);
         norte.add(new JSeparator(), BorderLayout.SOUTH);
 
-        String[] colsDet = {"Código", "Descripción", "Precio",
-                            "Cant.", "Importe", "%"};
+        String[] colsDet = {"Código", "Descripción", "Precio", "Cant.", "Importe", "%"};
         modeloDetalle = new DefaultTableModel(colsDet, 0) {
-            @Override
-            public boolean isCellEditable(int row, int col) { return false; }
+            @Override public boolean isCellEditable(int r, int c) { return false; }
         };
-
         tablaDetalle = new JTable(modeloDetalle);
         estilizarTabla(tablaDetalle);
         tablaDetalle.getColumnModel().getColumn(0).setPreferredWidth(75);
@@ -352,14 +338,20 @@ public class Historial extends JFrame {
         JScrollPane scroll = new JScrollPane(tablaDetalle);
         scroll.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
 
-        p.add(norte, BorderLayout.NORTH);
+        p.add(norte,  BorderLayout.NORTH);
         p.add(scroll, BorderLayout.CENTER);
         return p;
     }
 
-    //  LÓGICA DE DATOS — ApiClient
+    // ─── LÓGICA DE DATOS ─────────────────────────────────────────────────────
 
-    /** GET /tickets/fecha?fecha=YYYY-MM-DD */
+    /**
+     * GET /tickets/fecha?fecha=YYYY-MM-DD
+     * Solo muestra tickets de tipo "Ticket" y estado "Pagado".
+     * FIX: el estado correcto es "Pagado", no "Abierto" ni "Activo".
+     * Los tickets en proceso tienen estado "Activo" hasta que PagoController
+     * los cambia a "Pagado" al registrar el pago.
+     */
     private void cargarHistorialDelDia() {
         modeloFolios.setRowCount(0);
         limpiarDetalle();
@@ -367,27 +359,25 @@ public class Historial extends JFrame {
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
-                String endpoint = "/tickets/fecha?fecha=" + fechaActual.toString();
-                String json = api.get(endpoint);
-                JsonNode array = mapper.readTree(json);
+                String json  = api.get("/tickets/fecha?fecha=" + fechaActual);
+                JsonNode arr = mapper.readTree(json);
 
                 SwingUtilities.invokeLater(() -> {
                     modeloFolios.setRowCount(0);
-                    for (JsonNode t : array) {
-                        // Mostrar solo tickets de tipo "Ticket" (no Re-Tickets ni Devoluciones)
+                    for (JsonNode t : arr) {
                         String tipo   = t.path("tipoDocumento").asText();
                         String estado = t.path("estadoDocumento").asText();
-                        if (!"Ticket".equalsIgnoreCase(tipo)) continue;
-                        // Mostrar Pagados y también Abiertos (por si el pago aún está en proceso)
-                        if (!"Pagado".equalsIgnoreCase(estado) && !"Abierto".equalsIgnoreCase(estado)) continue;
 
-                        int folio = t.path("folioTicket").asInt();
-                        String hora = t.path("horaTransaccion").asText();
+                        // Solo ventas completadas
+                        if (!"Ticket".equals(tipo) || !"Pagado".equals(estado)) continue;
+
+                        int    folio = t.path("folioTicket").asInt();
+                        String hora  = t.path("horaTransaccion").asText();
                         double total = t.path("totalNeto").asDouble(0);
 
                         modeloFolios.addRow(new Object[]{
                             folio,
-                            0,
+                            0,    // artículos: se rellena al seleccionar el folio
                             hora.isBlank() ? "—" : formatearHora(hora),
                             "$" + String.format("%.2f", total)
                         });
@@ -398,9 +388,8 @@ public class Historial extends JFrame {
 
             @Override
             protected void done() {
-                try {
-                    get();
-                } catch (Exception ex) {
+                try { get(); }
+                catch (Exception ex) {
                     logger.log(Level.SEVERE, "Error al cargar historial", ex);
                     mostrarError("Error al cargar historial", ex);
                 }
@@ -408,35 +397,34 @@ public class Historial extends JFrame {
         }.execute();
     }
 
-    /** GET /tickets/{folio}  +  GET /tickets/{folio}/detalle */
+    /**
+     * GET /tickets/{folio}  →  cabecera (usuario, totales, fecha)
+     * GET /tickets/{folio}/detalle  →  renglones con producto.descripcion
+     *
+     * producto.descripcion funciona gracias al JOIN FETCH en
+     * DetalleTicketRepository.findByFolioTicket().
+     * usuario.nombreUsuario funciona gracias a @JsonIgnoreProperties en
+     * Ticket.java y @JsonProperty(WRITE_ONLY) en Usuario.java.
+     */
     private void cargarDetalleTicket(int folio) {
         modeloDetalle.setRowCount(0);
 
         new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
-                // Llamada 1: cabecera del ticket
-                String jsonTicket = api.get("/tickets/" + folio);
-                JsonNode obj = mapper.readTree(jsonTicket);
-
-                // Llamada 2: renglones (FetchType.LAZY, endpoint separado)
-                String jsonDetalle = api.get("/tickets/" + folio + "/detalle");
-                JsonNode detalles  = mapper.readTree(jsonDetalle);
+                JsonNode obj      = mapper.readTree(api.get("/tickets/" + folio));
+                JsonNode detalles = mapper.readTree(api.get("/tickets/" + folio + "/detalle"));
 
                 SwingUtilities.invokeLater(() -> {
+                    // Cabecera
                     lblFolioValor.setText(String.valueOf(obj.path("folioTicket").asInt()));
-
-                    // Cajero: objeto anidado usuario.nombreUsuario
-                    String cajero = obj.path("usuario").path("nombreUsuario").asText();
-                    if (cajero == null || cajero.isEmpty()) cajero = "—";
-                    lblCajeroValor.setText(cajero);
-
+                    lblCajeroValor.setText(
+                        textOrDefault(obj.path("usuario"), "nombreUsuario", "—"));
                     lblTotalValor.setText(
                         "$" + String.format("%.2f", obj.path("totalNeto").asDouble()));
 
-                    // Campo real del modelo: fechaTransaccion
-                    String fechaStr = obj.path("fechaTransaccion").asText();
-                    if (fechaStr == null || fechaStr.isEmpty()) fechaStr = LocalDate.now().toString();
+                    String fechaStr = textOrDefault(obj, "fechaTransaccion",
+                        LocalDate.now().toString());
                     try {
                         lblFechaTicket.setText(
                             formatearFechaLarga(LocalDate.parse(fechaStr)));
@@ -444,29 +432,36 @@ public class Historial extends JFrame {
                         lblFechaTicket.setText(fechaStr);
                     }
 
-                    // Renglones: campos reales de DetalleTicket
+                    // Renglones
+                    // FIX: BigDecimal.valueOf(asDouble) pierde precisión en granel.
+                    // Se usa new BigDecimal(asText) para respetar el valor exacto
+                    // que envía el backend (precision=10, scale=3).
                     int totalArts = 0;
                     for (JsonNode d : detalles) {
                         String cod  = d.path("codigoBarras").asText();
+
+                        // descripcion viene de producto gracias al JOIN FETCH
                         String desc = d.path("producto").path("descripcion").asText();
-                        if (desc == null || desc.isEmpty()) desc = cod;
-                        java.math.BigDecimal cant =
-                            new java.math.BigDecimal(d.path("cantidad").asText().isEmpty() ? "0" : d.path("cantidad").asText());
+                        if (desc.isBlank()) desc = cod;
+
+                        String cantStr = textOrDefault(d, "cantidad", "0");
+                        BigDecimal cant;
+                        try { cant = new BigDecimal(cantStr); }
+                        catch (NumberFormatException e) { cant = BigDecimal.ZERO; }
+
                         totalArts += cant.intValue();
+
                         modeloDetalle.addRow(new Object[]{
                             cod,
                             desc,
-                            "$" + String.format("%.2f",
-                                d.path("precioUnitarioVenta").asDouble()),
+                            "$" + String.format("%.2f", d.path("precioUnitarioVenta").asDouble()),
                             cant.stripTrailingZeros().toPlainString(),
-                            "$" + String.format("%.2f",
-                                d.path("importe").asDouble()),
-                            String.format("%.0f%%",
-                                d.path("descuentoProducto").asDouble())
+                            "$" + String.format("%.2f", d.path("importe").asDouble()),
+                            String.format("%.0f%%", d.path("descuentoProducto").asDouble())
                         });
                     }
 
-                    // Actualizar conteo de artículos en la tabla de folios
+                    // Actualizar columna Arts en la tabla izquierda
                     final int arts = totalArts;
                     for (int i = 0; i < modeloFolios.getRowCount(); i++) {
                         if (Integer.valueOf(folio).equals(modeloFolios.getValueAt(i, 0))) {
@@ -480,9 +475,8 @@ public class Historial extends JFrame {
 
             @Override
             protected void done() {
-                try {
-                    get();
-                } catch (Exception ex) {
+                try { get(); }
+                catch (Exception ex) {
                     logger.log(Level.SEVERE, "Error al cargar detalle", ex);
                     mostrarError("Error al cargar ticket " + folio, ex);
                 }
@@ -490,27 +484,25 @@ public class Historial extends JFrame {
         }.execute();
     }
 
-        /** Filtra la tabla izquierda sin nueva petición HTTP */
+    // ─── UTILIDADES ──────────────────────────────────────────────────────────
+
+    /** Filtra la tabla de folios por número sin hacer una nueva petición HTTP. */
     private void filtrarPorFolio(String texto) {
         if (texto.isEmpty()) {
             tablaFolios.setRowSorter(null);
             return;
         }
-
-        TableRowSorter<DefaultTableModel> sorter =
-                new TableRowSorter<>(modeloFolios);
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(modeloFolios);
         tablaFolios.setRowSorter(sorter);
         sorter.setRowFilter(RowFilter.regexFilter("(?i)" + texto, 0));
     }
 
-    //  UTILIDADES
-
     private void limpiarDetalle() {
-        if (lblFolioValor != null) lblFolioValor.setText("—");
+        if (lblFolioValor  != null) lblFolioValor.setText("—");
         if (lblCajeroValor != null) lblCajeroValor.setText("—");
-        if (lblTotalValor != null) lblTotalValor.setText("—");
+        if (lblTotalValor  != null) lblTotalValor.setText("—");
         if (lblFechaTicket != null) lblFechaTicket.setText("—");
-        if (modeloDetalle != null) modeloDetalle.setRowCount(0);
+        if (modeloDetalle  != null) modeloDetalle.setRowCount(0);
     }
 
     private void estilizarTabla(JTable tabla) {
@@ -527,37 +519,37 @@ public class Historial extends JFrame {
     private JButton botonModulo(String texto) {
         JButton b = new JButton(texto);
         b.setBackground(NARANJA);
-        b.setFont(new Font("ITF Devanagari Marathi", Font.PLAIN, 14));
+        b.setFont(new Font("Arial", Font.PLAIN, 14));
         b.setFocusPainted(false);
         return b;
     }
 
     private void mostrarError(String titulo, Exception ex) {
         JOptionPane.showMessageDialog(this,
-                titulo + ":\n" + ex.getMessage(),
-                "Error", JOptionPane.ERROR_MESSAGE);
+            titulo + ":\n" + ex.getMessage(),
+            "Error", JOptionPane.ERROR_MESSAGE);
     }
 
     private void mostrarSelectorFecha() {
         SpinnerDateModel modelo = new SpinnerDateModel(
-                java.sql.Date.valueOf(fechaActual),
-                null,
-                java.sql.Date.valueOf(LocalDate.now()),
-                java.util.Calendar.DAY_OF_MONTH);
+            java.sql.Date.valueOf(fechaActual),
+            null,
+            java.sql.Date.valueOf(LocalDate.now()),
+            java.util.Calendar.DAY_OF_MONTH);
 
         JSpinner spinner = new JSpinner(modelo);
         spinner.setEditor(new JSpinner.DateEditor(spinner, "dd/MM/yyyy"));
 
         int r = JOptionPane.showConfirmDialog(this, spinner,
-                "Seleccionar fecha",
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.PLAIN_MESSAGE);
+            "Seleccionar fecha",
+            JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.PLAIN_MESSAGE);
 
         if (r == JOptionPane.OK_OPTION) {
             java.util.Date d = (java.util.Date) spinner.getValue();
             fechaActual = d.toInstant()
-                    .atZone(java.time.ZoneId.systemDefault())
-                    .toLocalDate();
+                .atZone(java.time.ZoneId.systemDefault())
+                .toLocalDate();
             lblFechaValor.setText(formatearFechaLarga(fechaActual));
             cargarHistorialDelDia();
         }
@@ -567,9 +559,9 @@ public class Historial extends JFrame {
     private String formatearHora(String horaStr) {
         try {
             LocalTime t = LocalTime.parse(horaStr,
-                    DateTimeFormatter.ofPattern("HH:mm:ss"));
+                DateTimeFormatter.ofPattern("HH:mm:ss"));
             return t.format(DateTimeFormatter.ofPattern(
-                    "h:mm a", Locale.ENGLISH)).toLowerCase();
+                "h:mm a", Locale.ENGLISH)).toLowerCase();
         } catch (Exception ex) {
             return horaStr;
         }
@@ -579,8 +571,8 @@ public class Historial extends JFrame {
     private String formatearFechaLarga(LocalDate d) {
         try {
             return d.format(DateTimeFormatter.ofPattern(
-                    "EEEE, d 'de' MMMM 'de' yyyy",
-                    Locale.forLanguageTag("es-MX")));
+                "EEEE, d 'de' MMMM 'de' yyyy",
+                Locale.forLanguageTag("es-MX")));
         } catch (Exception ex) {
             return d.toString();
         }
@@ -590,17 +582,17 @@ public class Historial extends JFrame {
         JDialog popup = new JDialog(this, false);
         popup.setUndecorated(true);
         popup.setLayout(new BorderLayout());
- 
+
         JPanel contenedor = new JPanel(new GridLayout(0, 1, 0, 0));
         contenedor.setBackground(new Color(230, 230, 230));
         contenedor.setBorder(BorderFactory.createLineBorder(Color.GRAY));
- 
+
         JLabel titulo = new JLabel("Sesión", SwingConstants.CENTER);
         titulo.setOpaque(true);
         titulo.setBackground(NARANJA);
         titulo.setFont(new Font("Arial", Font.BOLD, 13));
         titulo.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
- 
+
         JButton btnCerrar = new JButton("Cerrar sesión");
         btnCerrar.setBackground(new Color(230, 230, 230));
         btnCerrar.setFont(new Font("Arial", Font.PLAIN, 12));
@@ -612,32 +604,33 @@ public class Historial extends JFrame {
             new Login().setVisible(true);
             dispose();
         });
- 
+
         JButton btnCancelar = new JButton("Cancelar");
         btnCancelar.setBackground(new Color(230, 230, 230));
         btnCancelar.setFont(new Font("Arial", Font.PLAIN, 12));
         btnCancelar.setFocusPainted(false);
         btnCancelar.addActionListener(ev -> popup.dispose());
- 
+
         contenedor.add(titulo);
         contenedor.add(btnCerrar);
         contenedor.add(btnCancelar);
         popup.add(contenedor);
         popup.pack();
- 
+
         Point p = origen.getLocationOnScreen();
         popup.setLocation(p.x, p.y + origen.getHeight());
         popup.setVisible(true);
     }
- 
+
+    /**
+     * Lee un campo de texto de un JsonNode devolviendo un default si
+     * el nodo es null, está ausente o es JSON null.
+     */
     private String textOrDefault(JsonNode node, String campo, String defaultValue) {
-        if (node == null) {
-            return defaultValue;
-        }
-        JsonNode value = node.path(campo);
-        if (value.isMissingNode() || value.isNull()) {
-            return defaultValue;
-        }
-        return value.asText();
+        if (node == null || node.isMissingNode() || node.isNull()) return defaultValue;
+        JsonNode v = node.path(campo);
+        if (v.isMissingNode() || v.isNull()) return defaultValue;
+        String s = v.asText();
+        return s.isBlank() ? defaultValue : s;
     }
 }

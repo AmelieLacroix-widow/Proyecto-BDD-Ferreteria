@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-// Trabajando desde rama ventas
+
 /**
  * Pantalla del módulo de Ventas.
  *
@@ -140,10 +140,9 @@ public class VENTAS extends JFrame {
 
         // INVENTARIO
         JButton btnInventario = crearBtnNav("Inventario", false);
-        btnInventario.addActionListener(e -> {
-        new INVENTARIO(rol, nombreUsuario).setVisible(true);
-        dispose();
-        });
+        btnInventario.addActionListener(e ->
+            JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Inventario",
+                JOptionPane.INFORMATION_MESSAGE));
         izqModulos.add(btnInventario);
 
         modulos.add(izqModulos, BorderLayout.WEST);
@@ -157,10 +156,9 @@ public class VENTAS extends JFrame {
                 JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Corte",
                     JOptionPane.INFORMATION_MESSAGE));
             JButton btnUsuario = crearBtnNav("Usuario", false);
-            btnUsuario.addActionListener(e -> {
-            new USUARIO(rol, nombreUsuario).setVisible(true);
-            dispose();
-            });
+            btnUsuario.addActionListener(e ->
+                JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Usuario",
+                    JOptionPane.INFORMATION_MESSAGE));
             derModulos.add(btnCorte);
             derModulos.add(btnUsuario);
             modulos.add(derModulos, BorderLayout.EAST);
@@ -885,61 +883,67 @@ public class VENTAS extends JFrame {
 
                     // ── Paso 1: crear el Ticket ──────────────────────────
                     publish("Creando ticket…");
-                    java.time.LocalDate hoy = java.time.LocalDate.now();
-                    java.time.LocalTime ahoraT = java.time.LocalTime.now();
-                    // Formatear hora explicitamente HH:mm:ss (LocalTime.toString puede omitir segundos)
-                    String horaStr = String.format("%02d:%02d:%02d",
-                        ahoraT.getHour(), ahoraT.getMinute(), ahoraT.getSecond());
-                    // BigDecimal con escala explicita y toPlainString para evitar notacion cientifica
-                    // porcentajeDescuento tiene scale=3 y totalDescuento scale=2 en el modelo
+                    java.time.LocalDate hoy   = java.time.LocalDate.now();
+                    java.time.LocalTime ahora = java.time.LocalTime.now();
+                    // totalBruto = totalNeto (sin descuento global por ahora)
+                    // FIX 1: estadoDocumento = "Activo" al crear.
+                    // PagoController.crear() cambia el estado a "Pagado" internamente
+                    // cuando se registra el pago en el Paso 3.
+                    // Si se crea como "Pagado" desde aquí y el flujo falla entre el
+                    // paso 1 y el 3, queda un ticket "Pagado" sin pago asociado en la BD.
+                    //
+                    // FIX 2: String.format en lugar de substring(0,8).
+                    // LocalTime.toString() omite segundos cuando son :00 exactos,
+                    // lo que causaba StringIndexOutOfBoundsException.
                     String jsonTicket = "{"
                         + "\"tipoDocumento\":\"Ticket\","
-                        + "\"estadoDocumento\":\"Abierto\","
+                        + "\"estadoDocumento\":\"Activo\","
                         + "\"fechaTransaccion\":\"" + hoy + "\","
-                        + "\"horaTransaccion\":\"" + horaStr + "\","
-                        + "\"totalBruto\":" + totalFinal.toPlainString() + ","
-                        + "\"porcentajeDescuento\":0.000,"
-                        + "\"totalDescuento\":0.00,"
-                        + "\"totalNeto\":" + totalFinal.toPlainString() + ","
+                        + "\"horaTransaccion\":\"" + String.format("%02d:%02d:%02d",
+                            ahora.getHour(), ahora.getMinute(), ahora.getSecond()) + "\","
+                        + "\"totalBruto\":"          + totalFinal + ","
+                        + "\"porcentajeDescuento\":0,"
+                        + "\"totalDescuento\":0,"
+                        + "\"totalNeto\":"            + totalFinal + ","
                         + "\"usuario\":{\"idUsuario\":" + idUsuario + "}"
                         + "}";
                     String respTicket = api.post("/tickets", jsonTicket);
                     com.fasterxml.jackson.databind.JsonNode nTicket = mapper.readTree(respTicket);
                     int folio = nTicket.path("folioTicket").asInt();
-                    if (folio == 0) throw new Exception("El backend no devolvio un folio valido.");
+                    if (folio == 0) throw new Exception("El backend no devolvió un folio válido.");
 
-                    // ── Paso 2: registrar cada renglon ───────────────────
+                    // ── Paso 2: registrar cada renglón ───────────────────
                     publish("Registrando productos…");
                     for (var r : renglones) {
-                        // descuentoProducto scale=3 → siempre con decimales
                         String jsonDet = "{"
                             + "\"codigoBarras\":\"" + r.codigo() + "\","
-                            + "\"cantidad\":" + r.cantidad().toPlainString() + ","
-                            + "\"precioUnitarioVenta\":" + r.precio().toPlainString() + ","
-                            + "\"importe\":" + r.importe().toPlainString() + ","
-                            + "\"descuentoProducto\":0.000"
+                            + "\"cantidad\":"        + r.cantidad() + ","
+                            + "\"precioUnitarioVenta\":" + r.precio() + ","
+                            + "\"importe\":"         + r.importe() + ","
+                            + "\"descuentoProducto\":" + r.descuento()
                             + "}";
                         api.post("/tickets/" + folio + "/detalle", jsonDet);
                     }
 
                     // ── Paso 3: registrar el pago ────────────────────────
-                    // El PagoController asigna ticket internamente via folio en la URL
-                    // Solo mandamos los montos; no incluimos el objeto ticket en el body
                     publish("Registrando pago…");
+                    // Construir JSON de Pago con los campos NOT NULL del modelo
+                    // (todos los montos que no aplican van a 0)
+                    java.math.BigDecimal cero = java.math.BigDecimal.ZERO;
                     String jsonPago = "{"
-                        + "\"metodoPago\":\"" + metodoActual[0] + "\","
-                        + "\"montoEfectivo\":" + montoEfectivo[0].toPlainString() + ","
-                        + "\"pagoCon\":" + pagoCon[0].toPlainString() + ","
-                        + "\"cambio\":" + cambio[0].toPlainString() + ","
-                        + "\"montoTarjeta\":" + montoTarjeta[0].toPlainString() + ","
-                        + "\"referenciaTarjeta\":\"" + esc(refTarjeta[0]) + "\","
+                        + "\"metodoPago\":\""          + metodoActual[0]    + "\","
+                        + "\"montoEfectivo\":"          + montoEfectivo[0]   + ","
+                        + "\"pagoCon\":"                + pagoCon[0]         + ","
+                        + "\"cambio\":"                 + cambio[0]          + ","
+                        + "\"montoTarjeta\":"           + montoTarjeta[0]    + ","
+                        + "\"referenciaTarjeta\":\""    + refTarjeta[0]      + "\","
                         + "\"voucherTarjeta\":false,"
-                        + "\"montoTransferencia\":" + montoTransf[0].toPlainString() + ","
+                        + "\"montoTransferencia\":"     + montoTransf[0]     + ","
                         + "\"referenciaTransferencia\":\"\","
                         + "\"voucherTransferencia\":false,"
-                        + "\"montoCheque\":0.00,"
+                        + "\"montoCheque\":"            + cero               + ","
                         + "\"referenciaCheque\":\"\","
-                        + "\"montoCredito\":0.00"
+                        + "\"montoCredito\":"           + cero
                         + "}";
                     api.post("/tickets/" + folio + "/pago", jsonPago);
 
@@ -1139,9 +1143,5 @@ public class VENTAS extends JFrame {
         if (val == null) return BigDecimal.ZERO;
         try { return new BigDecimal(val.toString()); }
         catch (NumberFormatException e) { return BigDecimal.ZERO; }
-    }
-
-    private String esc(String s) {
-        return s == null ? "" : s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }
