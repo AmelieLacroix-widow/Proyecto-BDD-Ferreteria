@@ -2,7 +2,6 @@ package com.mycompany.ferreteria_alanis;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.Point;
 
 /**
  * Pantalla principal del sistema. Se muestra tras el login y actúa como menú
@@ -164,9 +163,7 @@ public class MenuPrincipal extends JFrame {
         if (esAdmin) {
             gbc.gridy = 2;
             gbc.gridx = 0;
-            panel.add(crearBotonModulo("CORTE", tamBoton, e -> {
-                JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Corte", JOptionPane.INFORMATION_MESSAGE);
-            }), gbc);
+            panel.add(crearBotonModulo("CORTE", tamBoton, e -> abrirCorte()), gbc);
 
             gbc.gridx = 1;
             panel.add(crearBotonModulo("USUARIO", tamBoton, e -> abrirUsuario()), gbc);
@@ -207,6 +204,11 @@ public class MenuPrincipal extends JFrame {
 
     private void abrirUsuario() {
         new USUARIO(rol, nombreUsuario).setVisible(true);
+        this.dispose();
+    }
+
+    private void abrirCorte() {
+        new CORTE(rol, nombreUsuario).setVisible(true);
         this.dispose();
     }
 
