@@ -394,11 +394,33 @@ public class CORTE extends JFrame {
                     if (!"Ticket".equals(tipo) || !"Pagado".equals(estado)) continue;
 
                     int    folio    = t.path("folioTicket").asInt();
-                    BigDecimal bruto = bdOf(t, "totalBruto");
-                    BigDecimal neta  = bdOf(t, "totalNeto");
-                    BigDecimal desc  = bdOf(t, "totalDescuento");  // ya es negativo o 0
 
-                    // 2 — Obtener pago de cada ticket
+                    // 2a — Calcular Venta (bruto) y Neta desde el detalle del ticket
+                    // Venta  = Σ (precioUnitarioVenta × cantidad)
+                    // Neta   = Σ importe  (ya con descuento aplicado)
+                    // Descuento = Neta - Venta  (negativo si hubo descuento)
+                    BigDecimal bruto = BigDecimal.ZERO;
+                    BigDecimal neta  = BigDecimal.ZERO;
+                    try {
+                        String jsonDet = api.get("/tickets/" + folio + "/detalle");
+                        JsonNode detalles = mapper.readTree(jsonDet);
+                        for (JsonNode d : detalles) {
+                            BigDecimal precio = bdOf(d, "precioUnitarioVenta");
+                            BigDecimal cant   = bdOf(d, "cantidad");
+                            BigDecimal imp    = bdOf(d, "importe");
+                            bruto = bruto.add(precio.multiply(cant)
+                                .setScale(2, java.math.RoundingMode.HALF_UP));
+                            neta  = neta.add(imp);
+                        }
+                    } catch (Exception ex) {
+                        // Si no hay detalle disponible, caer de vuelta al API del ticket
+                        bruto = bdOf(t, "totalBruto");
+                        neta  = bdOf(t, "totalNeto");
+                        LOGGER.log(Level.WARNING, "Sin detalle para folio " + folio + ", usando totalBruto/totalNeto", ex);
+                    }
+                    BigDecimal desc = neta.subtract(bruto);   // negativo si hubo descuento
+
+                    // 2b — Obtener pago de cada ticket
                     BigDecimal efectivo = BigDecimal.ZERO;
                     BigDecimal tarjeta  = BigDecimal.ZERO;
                     try {

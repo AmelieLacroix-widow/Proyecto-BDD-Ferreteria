@@ -452,13 +452,32 @@ public class Historial extends JFrame {
 
                         totalArts += cant.intValue();
 
+                        // Calcular % descuento desde precio, cantidad e importe
+                        // para evitar depender del campo descuentoProducto del API.
+                        // Venta bruta = precioUnitarioVenta * cantidad
+                        // Descuento % = (1 - importe / ventaBruta) * 100
+                        double precio   = d.path("precioUnitarioVenta").asDouble(0);
+                        double importe  = d.path("importe").asDouble(0);
+                        double cantDbl  = cant.doubleValue();
+                        double ventaBruta = precio * cantDbl;
+                        String descPct;
+                        if (ventaBruta > 0) {
+                            double pct = (1.0 - importe / ventaBruta) * 100.0;
+                            // Mostrar solo si hay descuento real (> 0.01 %)
+                            descPct = pct > 0.01
+                                ? String.format("%.0f%%", pct)
+                                : "";
+                        } else {
+                            descPct = "";
+                        }
+
                         modeloDetalle.addRow(new Object[]{
                             cod,
                             desc,
-                            "$" + String.format("%.2f", d.path("precioUnitarioVenta").asDouble()),
+                            "$" + String.format("%.2f", precio),
                             cant.stripTrailingZeros().toPlainString(),
-                            "$" + String.format("%.2f", d.path("importe").asDouble()),
-                            String.format("%.0f%%", d.path("descuentoProducto").asDouble())
+                            "$" + String.format("%.2f", importe),
+                            descPct
                         });
                     }
 
