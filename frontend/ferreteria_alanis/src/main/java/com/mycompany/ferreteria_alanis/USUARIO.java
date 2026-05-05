@@ -286,7 +286,7 @@ public class USUARIO extends JFrame {
                         // Solo mostrar usuarios con rol USER (los ADMIN no se listan)
                         String rolN = n.path("rol").asText();
                         if ("USER".equalsIgnoreCase(rolN)) {
-                            modeloUsuarios.addRow(new Object[]{nombre, pass});
+                            modeloUsuarios.addRow(new Object[]{nombre, "••••••••"});
                         }
                     }
                 });
