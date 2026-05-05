@@ -491,7 +491,8 @@ public class CORTE extends JFrame {
     }
 
     private BigDecimal bdOf(JsonNode node, String campo) {
-        String s = node.path(campo).asText("0");
+        JsonNode valueNode = node.path(campo);
+        String s = valueNode.isMissingNode() || valueNode.isNull() ? "0" : valueNode.asText();
         try { return new BigDecimal(s).setScale(2, RoundingMode.HALF_UP); }
         catch (Exception e) { return BigDecimal.ZERO; }
     }

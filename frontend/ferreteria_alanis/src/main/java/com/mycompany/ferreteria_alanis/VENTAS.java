@@ -844,17 +844,32 @@ dlgDesc.setVisible(true);
         final int artsFinal = totalArticulos;
 
         // Snapshot de renglones para el SwingWorker (captura antes de cerrar diálogo)
-        record Renglon(String codigo, java.math.BigDecimal precio,
+        record Renglon(String codigo, java.math.BigDecimal precioOriginal,
+                       java.math.BigDecimal precio,
                        java.math.BigDecimal cantidad, java.math.BigDecimal importe,
-                       java.math.BigDecimal descuento) {}
+                       java.math.BigDecimal descuentoPct) {}
         java.util.List<Renglon> renglones = new java.util.ArrayList<>();
         for (int i = 0; i < modelActivo.getRowCount(); i++) {
+            // Leer el % de descuento del renglón (guardado como "X%")
+            String descStr = String.valueOf(modelActivo.getValueAt(i, COL_DESCUENTO));
+            double descPct = 0.0;
+            try { descPct = Double.parseDouble(descStr.replace("%", "").trim()); }
+            catch (NumberFormatException ignored) {}
+
+            java.math.BigDecimal precioFinal    = parseBD(modelActivo.getValueAt(i, COL_PRECIO));
+            java.math.BigDecimal cantidad       = parseBD(modelActivo.getValueAt(i, COL_CANT));
+            java.math.BigDecimal importe        = parseBD(modelActivo.getValueAt(i, COL_IMPORTE));
+
+            // precioOriginal = precio sin descuento (precio de lista ya con/sin IVA)
+            // El factor de descuento se guardó en el importe; el precio de columna
+            // es el precio unitario ya con IVA pero SIN aplicar descuento.
             renglones.add(new Renglon(
                 modelActivo.getValueAt(i, COL_CODIGO).toString(),
-                parseBD(modelActivo.getValueAt(i, COL_PRECIO)),
-                parseBD(modelActivo.getValueAt(i, COL_CANT)),
-                parseBD(modelActivo.getValueAt(i, COL_IMPORTE)),
-                java.math.BigDecimal.ZERO   // descuento por producto = 0 por ahora
+                precioFinal,                        // precio unitario (sin descuento)
+                precioFinal,
+                cantidad,
+                importe,
+                java.math.BigDecimal.valueOf(descPct)
             ));
         }
 
@@ -979,12 +994,21 @@ dlgDesc.setVisible(true);
                     publish("Creando ticket…");
                     java.time.LocalDate hoy   = java.time.LocalDate.now();
                     java.time.LocalTime ahora = java.time.LocalTime.now();
-                    // totalBruto = totalNeto (sin descuento global por ahora)
+                    // Calcular totalBruto (precio * cant, sin descuento),
+                    // totalNeto (lo que realmente paga el cliente = totalFinal),
+                    // y totalDescuento (diferencia, valor negativo).
+                    java.math.BigDecimal totalBruto = java.math.BigDecimal.ZERO;
+                    for (var r : renglones) {
+                        totalBruto = totalBruto.add(
+                            r.precioOriginal().multiply(r.cantidad())
+                                .setScale(2, java.math.RoundingMode.HALF_UP));
+                    }
+                    java.math.BigDecimal totalDescuento = totalFinal.subtract(totalBruto); // negativo si hubo descuento
+                    java.math.BigDecimal totalNeto = totalFinal;
+
                     // FIX 1: estadoDocumento = "Activo" al crear.
                     // PagoController.crear() cambia el estado a "Pagado" internamente
                     // cuando se registra el pago en el Paso 3.
-                    // Si se crea como "Pagado" desde aquí y el flujo falla entre el
-                    // paso 1 y el 3, queda un ticket "Pagado" sin pago asociado en la BD.
                     //
                     // FIX 2: String.format en lugar de substring(0,8).
                     // LocalTime.toString() omite segundos cuando son :00 exactos,
@@ -995,10 +1019,10 @@ dlgDesc.setVisible(true);
                         + "\"fechaTransaccion\":\"" + hoy + "\","
                         + "\"horaTransaccion\":\"" + String.format("%02d:%02d:%02d",
                             ahora.getHour(), ahora.getMinute(), ahora.getSecond()) + "\","
-                        + "\"totalBruto\":"          + totalFinal + ","
+                        + "\"totalBruto\":"          + totalBruto + ","
                         + "\"porcentajeDescuento\":0,"
-                        + "\"totalDescuento\":0,"
-                        + "\"totalNeto\":"            + totalFinal + ","
+                        + "\"totalDescuento\":"      + totalDescuento + ","
+                        + "\"totalNeto\":"            + totalNeto + ","
                         + "\"usuario\":{\"idUsuario\":" + idUsuario + "}"
                         + "}";
                     String respTicket = api.post("/tickets", jsonTicket);
@@ -1014,7 +1038,7 @@ dlgDesc.setVisible(true);
                             + "\"cantidad\":"        + r.cantidad() + ","
                             + "\"precioUnitarioVenta\":" + r.precio() + ","
                             + "\"importe\":"         + r.importe() + ","
-                            + "\"descuentoProducto\":" + r.descuento()
+                            + "\"descuentoProducto\":" + r.descuentoPct()
                             + "}";
                         api.post("/tickets/" + folio + "/detalle", jsonDet);
                     }
