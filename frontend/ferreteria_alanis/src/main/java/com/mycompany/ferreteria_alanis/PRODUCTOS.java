@@ -139,9 +139,10 @@ public class PRODUCTOS extends JFrame {
         izqMod.add(btnProductos);
 
         JButton btnInventario = crearBtnNav("Inventario", false);
-        btnInventario.addActionListener(e ->
-            JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Inventario",
-                JOptionPane.INFORMATION_MESSAGE));
+        btnInventario.addActionListener(e -> {
+        new INVENTARIO(rol, nombreUsuario).setVisible(true);
+        dispose();
+        });
         izqMod.add(btnInventario);
         modulos.add(izqMod, BorderLayout.WEST);
 

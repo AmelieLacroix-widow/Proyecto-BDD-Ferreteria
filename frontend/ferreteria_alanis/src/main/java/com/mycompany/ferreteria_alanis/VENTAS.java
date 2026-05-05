@@ -140,9 +140,10 @@ public class VENTAS extends JFrame {
 
         // INVENTARIO
         JButton btnInventario = crearBtnNav("Inventario", false);
-        btnInventario.addActionListener(e ->
-            JOptionPane.showMessageDialog(this, "Módulo en construcción.", "Inventario",
-                JOptionPane.INFORMATION_MESSAGE));
+        btnInventario.addActionListener(e -> {
+        new INVENTARIO(rol, nombreUsuario).setVisible(true);
+        dispose();
+        });
         izqModulos.add(btnInventario);
 
         modulos.add(izqModulos, BorderLayout.WEST);
