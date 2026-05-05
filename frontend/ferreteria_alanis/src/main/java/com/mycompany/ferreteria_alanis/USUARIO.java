@@ -280,7 +280,7 @@ public class USUARIO extends JFrame {
                 JsonNode array = mapper.readTree(json);
                 SwingUtilities.invokeLater(() -> {
                     modeloUsuarios.setRowCount(0);
-                    //Verificando si se registraron cambios en USUARIO
+                    //Verificando si se registraron cambios en  USUARIO
                     for (JsonNode n : array) {
                         String nombre = n.path("nombreUsuario").asText();
                         String pass   = n.path("contrasenaHash").asText();
