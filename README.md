@@ -198,14 +198,6 @@ Ya están incluidos en `.gitignore`, pero evitar subir:
 
 ---
 
-# 📌 Próximos pasos
-
-* Implementar API de productos
-* Diseñar base de datos completa
-* Desarrollar aplicación de escritorio (frontend)
-
----
-
 # 👥 Equipo
 
 Proyecto desarrollado en equipo para la gestión de una ferretería.
